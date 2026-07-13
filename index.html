@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="hi-IN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduSmart Ultimate Portal - Document & Media Support</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        :root {
+            --bg-tint: #f0fdf4; 
+            --primary: #166534;
+            --accent: #eab308;
+            --border: #cbd5e1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg-tint); color: #1f2937; padding-bottom: 60px; }
+
+        #login-screen, #parent-view-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-tint); display: flex; justify-content: center; align-items: center; z-index: 1000;
+            overflow-y: auto; padding: 20px;
+        }
+        .login-card, .parent-card {
+            background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center; width: 100%; max-width: 450px;
+        }
+        .login-card input {
+            width: 100%; padding: 12px; margin: 12px 0; border: 2px solid #bbf7d0; border-radius: 8px; outline: none;
+        }
+
+        .app-bar {
+            background-color: var(--primary); color: white; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;
+        }
+        .mic-btn {
+            background: #dc2626; border: none; color: white; padding: 10px 20px; border-radius: 50px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; font-weight: bold; transition: all 0.3s ease;
+        }
+        .mic-btn.listening { background: #16a34a; box-shadow: 0 0 15px #22c55e; }
+
+        .instruction-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px; }
+        @media(max-width: 768px) { .instruction-container { grid-template-columns: 1fr; } }
+        
+        .voice-instruction-box {
+            background: #fff7ed; border-left: 6px solid #ea580c; padding: 12px; border-radius: 6px;
+            font-size: 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); line-height: 1.5;
+        }
+        .voice-instruction-box.blue-box { background: #eff6ff; border-left-color: #2563eb; }
+
+        .global-context-bar {
+            background: white; padding: 12px; display: flex; gap: 10px; overflow-x: auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02); align-items: center;
+        }
+        .context-group { display: flex; align-items: center; gap: 5px; background: #f8fafc; padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; white-space: nowrap; }
+        .context-group label { font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase; }
+        .context-select {
+            padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff;
+            font-weight: 600; color: var(--primary); min-width: 120px; outline: none;
+        }
+        .add-context-btn { background: var(--primary); color: white; border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+
+        .tab-bar { display: flex; overflow-x: auto; background: white; padding: 10px; gap: 10px; border-bottom: 1px solid #e5e7eb; }
+        .tab-btn {
+            padding: 14px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+            color: white; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+        }
+        .tab-btn:nth-child(1) { background-color: #db2777; }
+        .tab-btn:nth-child(2) { background-color: #0284c7; }
+        .tab-btn:nth-child(3) { background-color: #e11d48; }
+        .tab-btn:nth-child(4) { background-color: #2563eb; }
+        .tab-btn:nth-child(5) { background-color: #0d9488; }
+        .tab-btn:nth-child(6) { background-color: #06b6d4; }
+        .tab-btn.active { border: 3px solid #000; transform: scale(1.02); }
+
+        .tab-content { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .tab-content.active { display: block; }
+
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 20px; }
+        
+        .search-box-container { margin-bottom: 15px; position: relative; }
+        .search-box-container input {
+            width: 100%; padding: 12px 15px 12px 40px; font-size: 14px; border: 2px solid #cbd5e1; border-radius: 8px; outline: none; transition: all 0.3s;
+        }
+        .search-box-container input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.15); }
+        .search-box-container i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 16px; }
+
+        .student-card {
+            background: #ffffff; padding: 15px; margin: 12px 0; border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02); border-left: 6px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+        .student-card.highlight-flash { background: #bbf7d0 !important; transform: scale(1.01); }
+        .student-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .fields-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; margin-top: 10px; }
+        .field-box { background: #f9fafb; padding: 8px; border-radius: 6px; border: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 5px; }
+        .field-title { font-size: 13px; font-weight: bold; color: #4b5563; }
+        .counter-row { display: flex; justify-content: space-between; align-items: center; margin: 2px 0; }
+        .counter-controls { display: flex; align-items: center; gap: 6px; }
+        .btn-sm { padding: 3px 8px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-plus { background: #22c55e; color: white; }
+        .btn-minus { background: #ef4444; color: white; }
+        .btn-delete { background: #b91c1c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+        .btn-qr-live { background: #06b6d4; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+        
+        .icon-display-row { font-size: 14px; margin-top: 4px; display: flex; flex-wrap: wrap; gap: 2px; }
+        .star-icon { color: #eab308; margin-right: 1px; font-size: 16px; }
+        .dot-icon { color: #dc2626; margin-right: 1px; font-size: 10px; vertical-align: middle; }
+
+        .wa-parent-btn {
+            background: #128c7e; color: white; border: none; padding: 10px 14px; border-radius: 8px;
+            font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; 
+            margin-top: 12px; font-size: 13px; transition: background 0.2s; width: 100%; justify-content: center;
+        }
+        .wa-parent-btn:hover { background: #075e54; }
+
+        .live-qr-box { background: #fef08a; padding: 20px; border-radius: 12px; text-align: center; border: 2px dashed #ca8a04; position: sticky; top: 180px; }
+        .qr-share-btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
+        .btn-qr-share { padding: 10px; border: none; border-radius: 6px; font-weight: bold; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; }
+
+        .canvas-container { background: #1e293b; border-radius: 12px; padding: 10px; box-shadow: inset 0 4px 10px rgba(0,0,0,0.3); }
+        #writingCanvas { background: #ffffff; display: block; width: 100%; height: 500px; border-radius: 8px; cursor: crosshair; touch-action: none; }
+        .board-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+        .color-pick { width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .board-btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        
+        .display-container { text-align: center; background: #0f172a; padding: 20px; border-radius: 12px; min-height: 300px; display: flex; justify-content: center; align-items: center; color: #94a3b8; border: 3px solid #06b6d4; }
+        .display-image { max-width: 100%; max-height: 550px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: none; cursor: pointer; }
+
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; margin-top: 15px; }
+        .gallery-item { position: relative; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; height: 135px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+        .gallery-doc-card { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; cursor: pointer; padding: 10px; text-align: center; }
+        .gallery-doc-card i { font-size: 40px; }
+        .gallery-doc-card span { font-size: 11px; font-weight: bold; color: #334155; word-break: break-all; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .delete-gallery-btn { position: absolute; top: 5px; right: 5px; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: center; z-index: 10; }
+
+        .ai-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .ai-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; text-align: center; }
+        .link-btn { display: inline-block; margin-top: 10px; padding: 10px 20px; color: white; background: #10b981; text-decoration: none; border-radius: 6px; font-weight: bold; }
+        .link-btn.blue { background: #3b82f6; }
+
+        .zoom-lightbox {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 2000; justify-content: center; align-items: center; overflow: hidden; flex-direction: column;
+        }
+        .lightbox-controls {
+            position: absolute; top: 20px; display: flex; gap: 15px; background: rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 30px; z-index: 2100; backdrop-filter: blur(5px);
+        }
+        .lightbox-btn {
+            background: white; border: none; color: #111827; width: 40px; height: 40px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;
+        }
+        .lightbox-btn:active { transform: scale(0.9); }
+        .lightbox-btn.close-btn { background: #ef4444; color: white; }
+        .lightbox-img-wrapper { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; overflow: auto; padding: 40px; }
+        .lightbox-img { max-width: 90%; max-height: 90%; object-fit: contain; transition: transform 0.2s ease; transform-origin: center center; }
+        
+        .camera-container { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 15px; background: #f8fafc; padding: 15px; border: 1px solid #cbd5e1; border-radius: 8px; }
+        #live-video { width: 100%; max-width: 400px; height: auto; background: #000; border-radius: 6px; display: none; }
+        .camera-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        
+        /* New Guest Banner Styling */
+        .guest-alert-banner {
+            display: none; background: #ef4444; color: white; padding: 8px 15px; font-size: 13px; font-weight: bold; text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="zoom-lightbox-modal" class="zoom-lightbox">
+        <div class="lightbox-controls">
+            <button class="lightbox-btn" onclick="adjustZoom(0.2)"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+            <button class="lightbox-btn" onclick="adjustZoom(-0.2)"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+            <button class="lightbox-btn" onclick="resetZoom()"><i class="fa-solid fa-rotate-left"></i></button>
+            <button class="lightbox-btn close-btn" onclick="closeLightbox()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="lightbox-img-wrapper" id="img-wrapper" onclick="closeLightboxOnBg(event)">
+            <img id="lightbox-target-img" class="lightbox-img" src="" alt="Zoom Window">
+        </div>
+    </div>
+
+    <div id="parent-view-screen" style="display:none;">
+        <div class="parent-card">
+            <i class="fa-solid fa-id-card" style="font-size: 50px; color: var(--primary);"></i>
+            <h2 id="p-student-name" style="margin: 15px 0; color: var(--primary);">छात्र रिपोर्ट कार्ड</h2>
+            <p id="p-scope-details" style="font-size: 13px; color: #4b5563; margin-bottom: 15px; font-weight: bold;"></p>
+            
+            <div style="text-align: left; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                <div class="field-box" style="padding: 12px;"><span class="field-title">📚 Notebook Status</span>
+                    <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:13px;">
+                        <span>⭐ Stars: <b id="p-nb-stars">0</b></span>
+                        <span>🔴 Dots: <b id="p-nb-dots">0</b></span>
+                    </div>
+                    <div id="p-nb-stars-row" style="margin-top: 5px; min-height: 18px;"></div>
+                    <div id="p-nb-dots-row" style="margin-top: 2px; min-height: 14px;"></div>
+                </div>
+                <div class="field-box" style="padding: 12px;"><span class="field-title">🤝 Discipline Status</span>
+                    <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:13px;">
+                        <span>⭐ Stars: <b id="p-ds-stars">0</b></span>
+                        <span>🔴 Dots: <b id="p-ds-dots">0</b></span>
+                    </div>
+                    <div id="p-ds-stars-row" style="margin-top: 5px; min-height: 18px;"></div>
+                    <div id="p-ds-dots-row" style="margin-top: 2px; min-height: 14px;"></div>
+                </div>
+                <div class="field-box" style="padding: 12px;"><span class="field-title">💬 Response Status</span>
+                    <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:13px;">
+                        <span>⭐ Stars: <b id="p-rs-stars">0</b></span>
+                        <span>🔴 Dots: <b id="p-rs-dots">0</b></span>
+                    </div>
+                    <div id="p-rs-stars-row" style="margin-top: 5px; min-height: 18px;"></div>
+                    <div id="p-rs-dots-row" style="margin-top: 2px; min-height: 14px;"></div>
+                </div>
+            </div>
+            
+            <div id="parent-portal-qrcode" style="display:flex; justify-content:center; background:white; padding:10px; border: 1px solid #cbd5e1; border-radius:8px; margin: 15px auto; width: fit-content;"></div>
+            <p style="font-size: 11px; color: #64748b;">यह आपके बच्चे का लाइव व्यक्तिगत QR कोड रिपोर्ट कार्ड है।</p>
+        </div>
+    </div>
+
+    <div id="login-screen">
+        <div class="login-card">
+            <i class="fa-solid fa-lock" style="font-size: 50px; color: var(--primary);"></i>
+            <h2 style="margin: 15px 0;">सुरक्षित क्लाउड लॉगिन</h2>
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 5px;">पासवर्ड अब क्लाउड डेटाबेस द्वारा लाइव जाँचा जाता है।</p>
+            <input type="text" id="username" placeholder="यूज़रनेम" maxlength="15" autocomplete="off">
+            <input type="password" id="password" placeholder="सुरक्षित पासवर्ड प्रविष्ट करें" maxlength="25" autocomplete="off">
+            <button onclick="loginWithCloudSecurity()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-shield-halved"></i> प्रमाणित करें</button>
+            
+            <div style="margin: 20px 0 10px 0; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
+                <button onclick="loginAsGuest()" style="width:100%; padding:12px; background:#475569; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-eye"></i> गेस्ट लॉगिन (Read-Only View)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-interface" style="display:none;">
+        <div id="guest-mode-banner" class="guest-alert-banner"><i class="fa-solid fa-triangle-exclamation"></i> आप गेस्ट मोड (Read-Only) में हैं। आप केवल डेटा देख सकते हैं, कोई बदलाव या अपलोड नहीं कर सकते।</div>
+        
+        <div class="app-bar">
+            <h2><i class="fa-solid fa-bolt"></i> EduSmart Ultimate Portal - Document Enabled</h2>
+            <button class="mic-btn" id="mic-trigger" onclick="toggleVoice()">
+                <i class="fa-solid fa-microphone"></i> <span id="mic-status">माइक ऑन करें</span>
+            </button>
+        </div>
+
+        <div class="instruction-container">
+            <div class="voice-instruction-box">
+                <strong><i class="fa-solid fa-map-sign" style="color: #ea580c;"></i> 1. SCREEN NAVIGATION VOICE COMMAND:</strong><br>
+                "स्टूडेंट्स" / "बोर्ड" / "फोटो" / "गैलरी" / "लिंक" / "एआई जनरेटर"
+            </div>
+            <div class="voice-instruction-box blue-box">
+                <strong><i class="fa-solid fa-star-half-stroke" style="color: #2563eb;"></i> 2. LIVE ASSESSMENT VOICE COMMAND:</strong><br>
+                <code>[छात्र नाम] + [notebook/discipline/response] + [star/dot] + [plus/minus]</code>
+            </div>
+        </div>
+
+        <div class="global-context-bar">
+            <div class="context-group"><label>Class:</label><select class="context-select" id="g-class" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('class')">+</button></div>
+            <div class="context-group"><label>Section:</label><select class="context-select" id="g-section" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('section')">+</button></div>
+            <div class="context-group"><label>Subject:</label><select class="context-select" id="g-subject" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('subject')">+</button></div>
+            <div class="context-group"><label>Chapter:</label><select class="context-select" id="g-chapter" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('chapter')">+</button></div>
+            <div class="context-group"><label>Concept:</label><select class="context-select" id="g-concept" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('concept')">+</button></div>
+        </div>
+
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab(0)"><i class="fa-solid fa-users"></i> स्टूडेंट्स & असेसमेंट</button>
+            <button class="tab-btn" onclick="switchTab(1)"><i class="fa-solid fa-chalkboard"></i> लाइव राइटिंग बोर्ड</button>
+            <button class="tab-btn" onclick="switchTab(2)"><i class="fa-solid fa-camera"></i> लाइव फोटो डिस्प्ले</button>
+            <button class="tab-btn" onclick="switchTab(3)"><i class="fa-solid fa-folder-open"></i> इमेज & डाक्यूमेंट्स</button>
+            <button class="tab-btn" onclick="switchTab(4)"><i class="fa-solid fa-folder-plus"></i> महत्वपूर्ण लिंक्स</button>
+            <button class="tab-btn" onclick="switchTab(5)"><i class="fa-solid fa-robot"></i> एआई जनरेटर</button>
+        </div>
+
+        <p id="voice-monitor" style="text-align:center; background:#fff; padding:10px; font-size:14px; color:#dc2626; font-weight:600; border-bottom: 1px solid #e5e7eb;">
+            🎤 माइक बंद है। चालू करने के लिए ऊपर लाल बटन दबाएं।
+        </p>
+
+        <div id="tab-0" class="tab-content active">
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                <div>
+                    <div class="card" style="border: 2px solid #2563eb; background: #f0f6ff;">
+                        <h3><i class="fa-solid fa-database"></i> ऑफलाइन पूर्ण ऐप बैकअप (Full App JSON Sharing)</h3>
+                        <p style="font-size: 12px; color: #475569; margin: 4px 0 12px 0;">यहाँ से आप ऐप के सभी क्लासेस, स्टूडेंट्स मैट्रिक्स, असेसमेंट स्कोर और लिंक्स का कम्प्लीट ऑफलाइन बैकअप ले और रीस्टोर कर सकते हैं।</p>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                            <button onclick="exportEntireAppJson()" style="padding: 10px 18px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-file-arrow-down"></i> 💾 Export Full DB (JSON)</button>
+                            <div style="border-left: 2px solid #cbd5e1; padding-left: 15px; display: flex; flex-direction: column; gap: 4px;">
+                                <label style="font-size: 11px; font-weight: bold; color: #1e40af;"><i class="fa-solid fa-file-arrow-up"></i> Import Full DB (JSON):</label>
+                                <input type="file" id="full-app-json-importer" class="restricted-action" accept=".json" onchange="importEntireAppJson(event)" style="font-size: 12px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fa-solid fa-user-plus"></i> छात्र नाम जोड़ें (<span class="current-scope-label" style="color:var(--primary); font-size:14px;"></span>)</h3>
+                        <div style="display:flex; gap:10px; margin: 10px 0;">
+                            <input type="text" id="manual-name" class="restricted-action" placeholder="छात्र का नाम लिखें (उदा: Amit या अमित)" style="padding:10px; flex:1; border:1px solid #ccc; border-radius:6px;">
+                            <button onclick="addStudent()" class="restricted-action" style="padding:10px 20px; background:var(--primary); color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">जोड़ें</button>
+                        </div>
+                        <hr style="margin:15px 0; border:0; border-top:1px solid #e2e8f0;">
+                        <textarea id="bulk-names" class="restricted-action" rows="3" placeholder="बल्क नाम: हर नाम नई लाइन पर लिखें..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px;"></textarea>
+                        <button onclick="importBulkStudents()" class="restricted-action" style="margin-top:8px; padding:10px 20px; background:#2563eb; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; width:100%;">बल्क नाम इम्पोर्ट करें</button>
+                        
+                        <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+                            <button onclick="shareAllDataToWhatsApp()" style="padding: 10px 15px; background: #075e54; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px;"><i class="fa-brands fa-whatsapp"></i> ऑल डेटा शीट WhatsApp</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>छात्र सूची (क्लाउड लाइव रिस्पांसिव शीट)</h3>
+                        <div class="search-box-container">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="student-search-input" placeholder="छात्र का नाम खोजना शुरू करें..." oninput="renderStudents()" autocomplete="off">
+                        </div>
+                        <div id="students-container"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="live-qr-box">
+                        <h3><i class="fa-solid fa-bolt"></i> पर्सनल लाइव QR पोर्टल</h3>
+                        <p id="qr-target-name" style="font-weight:bold; margin:10px 0; color:#166534;">चयनित: कोई नहीं</p>
+                        <div id="live-qrcode-graphic" style="display:flex; justify-content:center; background:white; padding:15px; border-radius:8px; margin:10px 0;"></div>
+                        <div class="qr-share-btn-group">
+                            <button class="btn-qr-share" style="background: #25d366;" onclick="shareLiveQR('whatsapp')"><i class="fa-brands fa-whatsapp"></i> QR & रिपोर्ट WhatsApp करें</button>
+                            <button class="btn-qr-share" style="background: #475569;" onclick="shareLiveQR('copy')"><i class="fa-solid fa-copy"></i> रिपोर्ट यूआरएल कॉपी करें</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-1" class="tab-content">
+            <div class="card">
+                <h3><i class="fa-solid fa-pen-fancy"></i> लाइव डिजिटल राइटिंग बोर्ड</h3>
+                <div class="board-controls">
+                    <div class="color-pick" style="background:#000000;" onclick="changePenColor('#000000')"></div>
+                    <div class="color-pick" style="background:#dc2626;" onclick="changePenColor('#dc2626')"></div>
+                    <div class="color-pick" style="background:#2563eb;" onclick="changePenColor('#2563eb')"></div>
+                    <select id="pen-width" onchange="changePenWidth(this.value)"><option value="3">पतला</option><option value="6" selected>मध्यम</option><option value="12">मोटा</option></select>
+                    <button class="board-btn restricted-action" style="background:#64748b; color:white;" onclick="useEraser()"><i class="fa-solid fa-eraser"></i> इरेज़र</button>
+                    <button class="board-btn restricted-action" style="background:#ef4444; color:white;" onclick="clearBoard()"><i class="fa-solid fa-trash-can"></i> साफ़ करें</button>
+                </div>
+                <div class="canvas-container"><canvas id="writingCanvas"></canvas></div>
+            </div>
+        </div>
+
+        <div id="tab-2" class="tab-content">
+            <div class="card">
+                <h3><i class="fa-solid fa-camera"></i> लाइव फोटो कैमरा कैप्चर & डिस्प्ले (<span class="current-scope-label" style="color:var(--primary); font-size:14px;"></span>)</h3>
+                <div class="camera-container">
+                    <video id="live-video" autoplay playsinline></video>
+                    <div class="camera-actions">
+                        <button id="btn-start-camera" class="restricted-action" onclick="startCameraLive()" style="padding: 10px 15px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-video"></i> लाइव कैमरा चालू करें</button>
+                        <button id="btn-capture-camera" class="restricted-action" onclick="capturePhotoLive()" style="padding: 10px 15px; background: #16a34a; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: none;"><i class="fa-solid fa-camera"></i> फोटो क्लिक करें</button>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px; text-align: center;">
+                    <span style="font-weight: bold; color: #4b5563;">अथवा फ़ाइल अपलोड करें:</span><br><br>
+                    <input type="file" id="live-display-uploader" class="restricted-action" accept="image/*" onchange="loadLiveDisplayImage(event)" style="padding: 10px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; width: 100%; max-width: 400px; cursor: pointer;">
+                </div>
+                <div class="display-container" id="display-frame">
+                    <img id="liveDisplayImg" class="display-image" src="" alt="Live Display Screen" onclick="openLightbox(this.src)">
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-3" class="tab-content">
+            <div class="card">
+                <h3><i class="fa-solid fa-cloud-arrow-up"></i> मीडिया & दस्तावेज़ अपलोड - टॉपिक वाइज़ (<span class="current-scope-label" style="color:var(--primary); font-size:14px;"></span>)</h3>
+                <p style="font-size: 12px; color: #64748b; margin-top: 4px; margin-bottom: 12px;">आप यहाँ इमेज (PNG, JPG) के साथ-साथ पीडीएफ (PDF), वर्ड (DOC, DOCX), और पावरपॉइंट (PPT, PPTX) फाइलें सुरक्षित सेव कर सकते हैं।</p>
+                <input type="file" id="gallery-uploader" class="restricted-action" accept="image/*, .pdf, .doc, .docx, .ppt, .pptx" onchange="uploadToGallery(event)" style="padding: 10px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; width: 100%; cursor: pointer;">
+            </div>
+            <div class="card">
+                <h3>लाइव दस्तावेज़ / गैलरी स्टोरेज</h3>
+                <div class="gallery-grid" id="live-gallery-view"></div>
+            </div>
+        </div>
+
+        <div id="tab-4" class="tab-content">
+            <div class="card">
+                <h3><i class="fa-solid fa-folder-plus"></i> महत्वपूर्ण स्मार्ट लिंक्स</h3>
+                <p style="font-size:13px; color:#64748b; margin-bottom:10px;">Topic: <span class="current-scope-label" style="color:var(--primary); font-weight:bold;"></span></p>
+                <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+                    <input type="text" id="link-title" class="restricted-action" placeholder="लिंक का शीर्षक या स्टूडेंट नेम" style="padding:10px; flex:1; min-width:200px; border:1px solid #cbd5e1; border-radius:6px;">
+                    <input type="text" id="link-url" class="restricted-action" placeholder="URL पेस्ट करें" style="padding:10px; flex:2; min-width:300px; border:1px solid #cbd5e1; border-radius:6px;">
+                    <button onclick="addLinkItem()" class="restricted-action" style="padding:10px 20px; background:var(--primary); color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">लाइव पब्लिश करें</button>
+                </div>
+                <div id="links-list-view" style="margin-top:20px;"></div>
+            </div>
+        </div>
+
+        <div id="tab-5" class="tab-content">
+            <div class="card">
+                <h3><i class="fa-solid fa-robot"></i> एआई जनरेटर असिस्टेंट</h3>
+                <div class="ai-grid">
+                    <div class="ai-card"><h4>Google Gemini AI</h4><a href="https://gemini.google.com" target="_blank" class="link-btn">ओपन जेमिनी एआई</a></div>
+                    <div class="ai-card"><h4>OpenAI ChatGPT</h4><a href="https://chatgpt.com" target="_blank" class="link-btn blue">ओपन चैटजीपीटी</a></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyCBW3EaQo-XiY05RpkG3eKiuhI5OcQZqu4",
+          authDomain: "edusmart-fbe62.firebaseapp.com",
+          databaseURL: "https://edusmart-fbe62-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "edusmart-fbe62",
+          storageBucket: "edusmart-fbe62.firebasestorage.app",
+          messagingSenderId: "751938301512",
+          appId: "1:751938301512:web:f8eea10bfb03ab625e727d",
+          measurementId: "G-QCYMBSM64M"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let contextDb = {
+            classes: ["Class 6", "Class 7", "Class 8"],
+            sections: ["Section A", "Section B", "Section C"],
+            subjects: ["Science", "Mathematics"],
+            chapters: ["Chapter 1"], concepts: ["Concept 1"]
+        };
+        let relationalStudentDb = {};
+        let relationalLinksDb = {};
+        
+        let scopeLiveImages = {}; 
+        let scopeGalleryDb = {};   
+
+        let savedCanvasImage = null;
+        let activeQRIndex = 0;
+        let currentZoomLevel = 1;
+        let canvas, ctx, isDrawing = false;
+        let penColor = "#000000", penWidth = 6;
+        let voiceEngine, micActive = false;
+        let liveStream = null;
+        
+        // New Global Variable to Track Access Authorization Mode
+        let isGuestUser = false;
+
+        const engToHinMap = {
+            "amit": "अमित", "rahul": "राहुल", "sumit": "सुमित", "rohit": "रोहित", "ajay": "अजय",
+            "aman": "अमन", "vijay": "विजय", "deepak": "दीपक", "sanjay": "संजय", "anil": "अनिल",
+            "sunil": "सुनील", "vikas": "विकास", "priya": "प्रिया", "neha": "नेहा", "pooja": "पूजा",
+            "jyoti": "ज्योति", "ravi": "रवि", "karan": "करण", "arjun": "अर्जुन", "raj": "राज"
+        };
+
+        function openLightbox(src) {
+            const modal = document.getElementById('zoom-lightbox-modal');
+            const img = document.getElementById('lightbox-target-img');
+            img.src = src; modal.style.display = 'flex'; resetZoom();
+        }
+        function closeLightbox() { document.getElementById('zoom-lightbox-modal').style.display = 'none'; }
+        function adjustZoom(amount) { currentZoomLevel = Math.max(0.5, Math.min(4, currentZoomLevel + amount)); document.getElementById('lightbox-target-img').style.transform = `scale(${currentZoomLevel})`; }
+        function resetZoom() { currentZoomLevel = 1; document.getElementById('lightbox-target-img').style.transform = `scale(${currentZoomLevel})`; }
+        function closeLightboxOnBg(e) { if(e.target.id === "img-wrapper") closeLightbox(); }
+
+        function getCurrentScopeKey() {
+            const cls = document.getElementById('g-class').value || "DefaultClass";
+            const sec = document.getElementById('g-section').value || "DefaultSec";
+            const sub = document.getElementById('g-subject').value || "DefaultSub";
+            const chp = document.getElementById('g-chapter').value || "DefaultChp";
+            const con = document.getElementById('g-concept').value || "DefaultCon";
+            return `${cls}___${sec}___${sub}___${chp}___${con}`.replace(/[\.\$\#\[\]]/g, "-");
+        }
+
+        function getActiveStudentList() {
+            const key = getCurrentScopeKey();
+            if (!relationalStudentDb[key]) relationalStudentDb[key] = [];
+            return relationalStudentDb[key];
+        }
+
+        function getActiveLinksList() {
+            const key = getCurrentScopeKey();
+            if (!relationalLinksDb[key]) relationalLinksDb[key] = [];
+            return relationalLinksDb[key];
+        }
+
+        function getActiveLiveImage() {
+            const key = getCurrentScopeKey();
+            return scopeLiveImages[key] || null;
+        }
+
+        function getActiveGalleryList() {
+            const key = getCurrentScopeKey();
+            if (!scopeGalleryDb[key]) scopeGalleryDb[key] = [];
+            return scopeGalleryDb[key];
+        }
+
+        function syncToFirebase(node) {
+            // Guardrail logic to strictly block write commits if Guest User Session
+            if (isGuestUser) { return; }
+            
+            const key = getCurrentScopeKey();
+            if(node === 'students') {
+                database.ref('relationalStudentDb').set(relationalStudentDb);
+            } else if(node === 'links') {
+                database.ref('relationalLinksDb').set(relationalLinksDb);
+            } else if(node === 'contexts') {
+                database.ref('contextDb').set(contextDb);
+            } else if(node === 'gallery') {
+                database.ref('scopeGalleryDb').set(scopeGalleryDb);
+            } else if(node === 'livePhoto') {
+                database.ref(`scopeLiveImages/${key}`).set(scopeLiveImages[key] || "");
+            } else {
+                database.ref('boardAndImages').set({
+                    savedCanvasImage: savedCanvasImage || ""
+                });
+            }
+        }
+
+        function startCloudSyncListeners() {
+            database.ref('contextDb').on('value', snapshot => {
+                if(snapshot.exists()) { contextDb = snapshot.val(); renderContextDropdowns(); }
+            });
+
+            database.ref('relationalStudentDb').on('value', snapshot => {
+                if(snapshot.exists()) { relationalStudentDb = snapshot.val(); renderStudents(); }
+                else { relationalStudentDb = {}; renderStudents(); }
+            });
+
+            database.ref('relationalLinksDb').on('value', snapshot => {
+                if(snapshot.exists()) { relationalLinksDb = snapshot.val(); renderLinks(); }
+            });
+
+            database.ref('scopeGalleryDb').on('value', snapshot => {
+                if(snapshot.exists()) { scopeGalleryDb = snapshot.val(); }
+                else { scopeGalleryDb = {}; }
+                renderGallery();
+            });
+
+            database.ref('scopeLiveImages').on('value', snapshot => {
+                if(snapshot.exists()) { scopeLiveImages = snapshot.val(); }
+                else { scopeLiveImages = {}; }
+                renderLiveDisplayImage();
+            });
+
+            database.ref('boardAndImages').on('value', snapshot => {
+                if(snapshot.exists()) {
+                    const data = snapshot.val();
+                    if(data.savedCanvasImage && data.savedCanvasImage !== savedCanvasImage) {
+                        savedCanvasImage = data.savedCanvasImage;
+                        if(canvas && ctx) {
+                            let img = new Image();
+                            img.onload = function() { ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img, 0, 0); };
+                            img.src = savedCanvasImage;
+                        }
+                    }
+                }
+            });
+        }
+
+        function loginWithCloudSecurity() {
+            const uName = document.getElementById('username').value.trim();
+            const pWord = document.getElementById('password').value.trim();
+
+            if(!uName || !pWord) {
+                alert("⚠️ कृपया यूज़रनेम और पासवर्ड दोनों दर्ज करें।");
+                return;
+            }
+
+            const mySecureUsername = "admin";
+            const mySecurePassword = "MyNewSecretPassword123";
+
+            if(uName === mySecureUsername && pWord === mySecurePassword) {
+                isGuestUser = false;
+                document.getElementById('guest-mode-banner').style.display = 'none';
+                executeApplicationInterfaceEntry();
+            } else {
+                alert("❌ गलत यूज़रनेम या पासवर्ड! पहुँच अस्वीकृत।");
+            }
+        }
+        
+        // New Login Controller for completely bypassing credentials securely into View Only mode
+        function loginAsGuest() {
+            isGuestUser = true;
+            document.getElementById('guest-mode-banner').style.display = 'block';
+            executeApplicationInterfaceEntry();
+            
+            // Add UI Lock delays to ensure input vectors are dynamically disabled 
+            setTimeout(() => { applyGuestUIRestrictions(); }, 500);
+        }
+        
+        function executeApplicationInterfaceEntry() {
+            document.getElementById('login-screen').style.display = 'none'; 
+            document.getElementById('app-interface').style.display = 'block';
+            renderContextDropdowns();
+            onContextChange();
+            initWritingBoard();
+            initVoiceEngine();
+            startCloudSyncListeners();
+        }
+        
+        // Helper block to strictly strip out control interfaces dynamically for read-only view
+        function applyGuestUIRestrictions() {
+            if(!isGuestUser) return;
+            
+            // Disable native structural actions
+            document.querySelectorAll('.restricted-action').forEach(element => {
+                element.disabled = true;
+                element.style.opacity = '0.5';
+                element.style.pointerEvents = 'none';
+            });
+            
+            // Force disable custom lists items rendered later
+            renderStudents();
+        }
+
+        function checkParentViewRoute() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const pName = urlParams.get('name');
+            const scopeKey = urlParams.get('scope');
+            if(pName && scopeKey) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-interface').style.display = 'none';
+                document.getElementById('parent-view-screen').style.display = 'flex';
+                
+                document.getElementById('p-student-name').innerText = `छात्र रिपोर्ट कार्ड: ${decodeURIComponent(pName)}`;
+                document.getElementById('p-scope-details').innerText = scopeKey.split('___').join(' ➔ ');
+
+                database.ref(`relationalStudentDb/${scopeKey}`).on('value', snapshot => {
+                    if(snapshot.exists()) {
+                        const list = snapshot.val();
+                        const current = Object.values(list).find(s => s && s.name === decodeURIComponent(pName));
+                        if(current) {
+                            const nbStars = current.notebook?.stars || 0;
+                            const nbDots = current.notebook?.dots || 0;
+                            const dsStars = current.discipline?.stars || 0;
+                            const dsDots = current.discipline?.dots || 0;
+                            const rsStars = current.response?.stars || 0;
+                            const rsDots = current.response?.dots || 0;
+                            
+                            document.getElementById('p-nb-stars').innerText = nbStars;
+                            document.getElementById('p-nb-dots').innerText = nbDots;
+                            document.getElementById('p-ds-stars').innerText = dsStars;
+                            document.getElementById('p-ds-dots').innerText = dsDots;
+                            document.getElementById('p-rs-stars').innerText = rsStars;
+                            document.getElementById('p-rs-dots').innerText = rsDots;
+                            
+                            document.getElementById('p-nb-stars-row').innerHTML = getOnlyIconsHtml(nbStars, 'star');
+                            document.getElementById('p-nb-dots-row').innerHTML = getOnlyIconsHtml(nbDots, 'dot');
+                            document.getElementById('p-ds-stars-row').innerHTML = getOnlyIconsHtml(dsStars, 'star');
+                            document.getElementById('p-ds-dots-row').innerHTML = getOnlyIconsHtml(dsDots, 'dot');
+                            document.getElementById('p-rs-stars-row').innerHTML = getOnlyIconsHtml(rsStars, 'star');
+                            document.getElementById('p-rs-dots-row').innerHTML = getOnlyIconsHtml(rsDots, 'dot');
+                        }
+                    }
+                });
+
+                document.getElementById('parent-portal-qrcode').innerHTML = "";
+                new QRCode(document.getElementById('parent-portal-qrcode'), { text: window.location.href, width: 140, height: 140 });
+                return true;
+            }
+            return false;
+        }
+
+        function getOnlyIconsHtml(count, type) {
+            let html = "<div class='icon-display-row'>";
+            for(let i=0; i<count; i++) {
+                if(type === 'star') html += "<i class='fa-solid fa-star star-icon'></i>";
+                if(type === 'dot') html += "<i class='fa-solid fa-circle dot-icon'></i>";
+            }
+            html += "</div>"; return html;
+        }
+
+        function onContextChange() {
+            const key = getCurrentScopeKey();
+            document.querySelectorAll('.current-scope-label').forEach(el => el.innerText = key.split('___').join(' ➔ '));
+            activeQRIndex = 0;
+            renderStudents();
+            renderLinks();
+            renderLiveDisplayImage();
+            renderGallery();
+            
+            if(isGuestUser) {
+                setTimeout(() => { applyGuestUIRestrictions(); }, 200);
+            }
+        }
+
+        function addContextItem(type) {
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र कॉन्टेक्स्ट ऐड नहीं कर सकते!"); return; }
+            let newItem = prompt(`नया नाम दर्ज करें:`);
+            if (newItem && newItem.trim() !== "") {
+                newItem = newItem.trim();
+                if (type === 'class') contextDb.classes.push(newItem);
+                if (type === 'section') contextDb.sections.push(newItem);
+                if (type === 'subject') contextDb.subjects.push(newItem);
+                if (type === 'chapter') contextDb.chapters.push(newItem);
+                if (type === 'concept') contextDb.concepts.push(newItem);
+                renderContextDropdowns(); 
+                document.getElementById(`g-${type}`).value = newItem; 
+                onContextChange();
+                syncToFirebase('contexts');
+            }
+        }
+
+        function renderContextDropdowns() { 
+            populateSelect("g-class", contextDb.classes); 
+            populateSelect("g-section", contextDb.sections); 
+            populateSelect("g-subject", contextDb.subjects); 
+            populateSelect("g-chapter", contextDb.chapters); 
+            populateSelect("g-concept", contextDb.concepts); 
+        }
+
+        function populateSelect(elementId, itemsList) { 
+            let select = document.getElementById(elementId); if(!select) return;
+            let currentVal = select.value; select.innerHTML = ""; 
+            itemsList.forEach(item => { let opt = document.createElement('option'); opt.value = item; opt.innerText = item; select.appendChild(opt); }); 
+            if(itemsList.includes(currentVal)) select.value = currentVal; 
+        }
+
+        function getQRLink(customIdx = null) {
+            let studentDb = getActiveStudentList(); 
+            let targetIdx = customIdx !== null ? customIdx : activeQRIndex;
+            if(studentDb.length === 0 || !studentDb[targetIdx]) return window.location.href.split('?')[0];
+            const current = studentDb[targetIdx];
+            return `${window.location.href.split('?')[0]}?name=${encodeURIComponent(current.name)}&scope=${encodeURIComponent(getCurrentScopeKey())}`;
+        }
+
+        function sendResultToWhatsApp(idx) {
+            let studentDb = getActiveStudentList(); const student = studentDb[idx]; if(!student) return;
+            const textMessage = `EduSmart Live Cloud Matrix\n\n🔹 Student: ${student.name}\n\n📚 Notebook Stars: ${student.notebook?.stars || 0} | 🔴 Dots: ${student.notebook?.dots || 0}\n🤝 Discipline Stars: ${student.discipline?.stars || 0} | 🔴 Dots: ${student.discipline?.dots || 0}\n💬 Response Stars: ${student.response?.stars || 0} | 🔴 Dots: ${student.response?.dots || 0}\n\n🔗 Live Real-time Link: ${getQRLink(idx)}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(textMessage)}`, '_blank');
+        }
+
+        function shareLiveQR(platform) {
+            const qrLink = getQRLink();
+            if(platform === 'whatsapp') { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(qrLink)}`, '_blank'); } 
+            else { navigator.clipboard.writeText(qrLink); alert("📋 लिंक कॉपी हुआ!"); }
+        }
+
+        function shareAllDataToWhatsApp() {
+            let studentDb = getActiveStudentList();
+            if (studentDb.length === 0) {
+                alert("⚠️ वर्तमान क्लास/सब्जेक्ट में कोई छात्र डेटा उपलब्ध नहीं है!");
+                return;
+            }
+            const keyText = getCurrentScopeKey().split('___').join(' ➔ ');
+            let bulkMessage = `📊 *EduSmart Matrix Report Card*\n📍 *Topic:* ${keyText}\n----------------------------------\n`;
+            
+            studentDb.forEach((s, idx) => {
+                if(!s) return;
+                bulkMessage += `\n👤 *${s.name}*\n↳ 📚 NB: ⭐${s.notebook?.stars || 0} | 🔴${s.notebook?.dots || 0}\n↳ 🤝 Disp: ⭐${s.discipline?.stars || 0} | 🔴${s.discipline?.dots || 0}\n↳ 💬 Resp: ⭐${s.response?.stars || 0} | 🔴${s.response?.dots || 0}\n🔗 View Live: ${getQRLink(idx)}\n`;
+            });
+            
+            window.open(`https://wa.me/?text=${encodeURIComponent(bulkMessage)}`, '_blank');
+        }
+
+        function exportEntireAppJson() {
+            const entireAppData = {
+                exportTimestamp: new Date().toISOString(),
+                contextDb: contextDb,
+                relationalStudentDb: relationalStudentDb,
+                relationalLinksDb: relationalLinksDb,
+                scopeGalleryDb: scopeGalleryDb,
+                scopeLiveImages: scopeLiveImages
+            };
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(entireAppData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `edusmart_full_backup_${new Date().toLocaleDateString().replace(/\//g,'-')}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importEntireAppJson(event) {
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र डेटा इम्पोर्ट नहीं कर सकते!"); event.target.value = ""; return; }
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if(!confirm("⚠️ क्या आप पूरा डेटा रीस्टोर करना चाहते हैं? इससे आपका वर्तमान डेटा बदल जाएगा।")) {
+                event.target.value = "";
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (parsedData.contextDb && parsedData.relationalStudentDb && parsedData.relationalLinksDb) {
+                        
+                        contextDb = parsedData.contextDb;
+                        relationalStudentDb = parsedData.relationalStudentDb;
+                        relationalLinksDb = parsedData.relationalLinksDb;
+                        scopeGalleryDb = parsedData.scopeGalleryDb || {};
+                        scopeLiveImages = parsedData.scopeLiveImages || {};
+
+                        database.ref().update({
+                            contextDb: contextDb,
+                            relationalStudentDb: relationalStudentDb,
+                            relationalLinksDb: relationalLinksDb,
+                            scopeGalleryDb: scopeGalleryDb,
+                            scopeLiveImages: scopeLiveImages
+                        }).then(() => {
+                            alert("✅ पूरे ऐप का डेटा सफलतापूर्वक रीस्टोर कर दिया गया है!");
+                            renderContextDropdowns();
+                            onContextChange();
+                        }).catch(err => {
+                            alert("❌ क्लाउड सिंक एरर: " + err.message);
+                        });
+
+                    } else {
+                        alert("❌ त्रुटि: यह फ़ाइल वैध एडुस्मार्ट बैकअप फ़ाइल नहीं है।");
+                    }
+                } catch (err) {
+                    alert("❌ त्रुटि: फ़ाइल को रीड करने में विफलता। कृपया सही JSON फ़ाइल चुनें।");
+                }
+                event.target.value = "";
+            };
+            reader.readAsText(file);
+        }
+
+        function initVoiceEngine() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) { 
+                const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition; 
+                voiceEngine = new SpeechRec(); voiceEngine.continuous = true; voiceEngine.interimResults = false; voiceEngine.lang = 'en-IN'; 
+                voiceEngine.onresult = function(e) { 
+                    const speechStr = e.results[e.results.length - 1][0].transcript.toLowerCase().trim(); 
+                    const monitor = document.getElementById('voice-monitor');
+                    monitor.innerHTML = `🟢 सुना गया: "${speechStr}"`;
+
+                    if(speechStr.includes("स्टूडेंट") || speechStr.includes("असेसमेंट") || speechStr.includes("student")) { switchTab(0); return; }
+                    if(speechStr.includes("बोर्ड") || speechStr.includes("board")) { switchTab(1); return; }
+                    if(speechStr.includes("फोटो") || speechStr.includes("कैमरा") || speechStr.includes("photo")) { switchTab(2); return; }
+                    if(speechStr.includes("गैलरी") || speechStr.includes("इमेज") || speechStr.includes("gallery") || speechStr.includes("document")) { switchTab(3); return; }
+                    if(speechStr.includes("लिंक") || speechStr.includes("link")) { switchTab(4); return; }
+                    if(speechStr.includes("एआई") || speechStr.includes("ai") || speechStr.includes("असिस्टेंट") || speechStr.includes("जनरेटर") || speechStr.includes("generator")) { switchTab(5); return; }
+
+                    if (isGuestUser) return; // Disallow voice score modifications for Guest Sessions
+
+                    let studentDb = getActiveStudentList();
+                    for (let i = 0; i < studentDb.length; i++) {
+                        let savedName = studentDb[i].name.toLowerCase().trim();
+                        let transliteratedName = engToHinMap[savedName] || "";
+                        
+                        if (speechStr.includes(savedName) || (transliteratedName !== "" && speechStr.includes(transliteratedName))) {
+                            let category = "";
+                            if(speechStr.includes("notebook") || speechStr.includes("नोटबुक")) category = "notebook";
+                            else if(speechStr.includes("discipline") || speechStr.includes("डिसिप्लिन")) category = "discipline";
+                            else if(speechStr.includes("response") || speechStr.includes("रिस्पांस")) category = "response";
+
+                            let type = "";
+                            if(speechStr.includes("star") || speechStr.includes("स्टार")) type = "stars";
+                            else if(speechStr.includes("dot") || speechStr.includes("डॉट")) type = "dots";
+
+                            let operation = 0;
+                            if (["plus", "add", "प्लस", "जोड़ो", "जोड़"].some(kw => speechStr.includes(kw))) operation = 1;
+                            else if (["minus", "маинус", "माइनस", "घटाओ", "घटा"].some(kw => speechStr.includes(kw))) operation = -1;
+
+                            if (category && type && operation !== 0) { 
+                                mod(i, category, type, operation); 
+                                triggerVisualFlash(i); 
+                                break; 
+                            }
+                        }
+                    }
+                };
+            }
+        }
+
+        function triggerVisualFlash(idx) { setTimeout(() => { const card = document.getElementById(`student-card-${idx}`); if(card) { card.classList.add('highlight-flash'); setTimeout(() => card.classList.remove('highlight-flash'), 1000); } }, 100); }
+        
+        function toggleVoice() { 
+            if(!voiceEngine) return; 
+            const trigger = document.getElementById('mic-trigger'); const monitor = document.getElementById('voice-monitor');
+            if(!micActive) { 
+                voiceEngine.start(); micActive = true; trigger.classList.add('listening'); 
+                monitor.innerHTML = isGuestUser ? "🟢 लाइव क्लाउड वॉइस ऑन है... (रीड-ओनली मोड)" : "🟢 लाइव क्लाउड वॉइस ऑन है... बोलिए (उदा: 'Amit notebook star plus')"; monitor.style.color = "#16a34a"; 
+            } else { 
+                voiceEngine.stop(); micActive = false; trigger.classList.remove('listening'); 
+                monitor.innerHTML = "🎤 माइक बंद है।"; monitor.style.color = "#dc2626";
+            } 
+        }
+
+        function startCameraLive() {
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र कैमरा एक्सेस नहीं कर सकते!"); return; }
+            const video = document.getElementById('live-video');
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => { liveStream = stream; video.srcObject = stream; video.style.display = 'block'; document.getElementById('btn-start-camera').style.display = 'none'; document.getElementById('btn-capture-camera').style.display = 'inline-block'; });
+        }
+
+        function capturePhotoLive() {
+            if (isGuestUser) return;
+            const video = document.getElementById('live-video'); if(!liveStream) return;
+            const tempCanvas = document.createElement('canvas'); tempCanvas.width = video.videoWidth || 640; tempCanvas.height = video.videoHeight || 480;
+            tempCanvas.getContext('2d').drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            const key = getCurrentScopeKey();
+            scopeLiveImages[key] = tempCanvas.toDataURL('image/jpeg'); 
+            syncToFirebase('livePhoto');
+            
+            liveStream.getTracks().forEach(track => track.stop()); video.style.display = 'none';
+            document.getElementById('btn-start-camera').style.display = 'inline-block'; document.getElementById('btn-capture-camera').style.display = 'none';
+        }
+
+        function loadLiveDisplayImage(event) { 
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र इमेज लोड नहीं कर सकते!"); event.target.value = ""; return; }
+            const file = event.target.files[0]; if (!file) return; 
+            const reader = new FileReader(); 
+            reader.onload = function(e) { 
+                const key = getCurrentScopeKey();
+                scopeLiveImages[key] = e.target.result; 
+                syncToFirebase('livePhoto'); 
+            }; 
+            reader.readAsDataURL(file); 
+        }
+        
+        function renderLiveDisplayImage() { 
+            const imgEl = document.getElementById('liveDisplayImg'); 
+            const activeImg = getActiveLiveImage();
+            if(activeImg) { 
+                imgEl.src = activeImg; 
+                imgEl.style.display = 'inline-block'; 
+            } else {
+                imgEl.src = "";
+                imgEl.style.display = 'none';
+            }
+        }
+
+        function switchTab(idx) { 
+            document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx)); 
+            document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx)); 
+            if(idx === 1) resizeCanvas(); 
+        }
+
+        function initWritingBoard() {
+            canvas = document.getElementById('writingCanvas'); ctx = canvas.getContext('2d'); resizeCanvas();
+            
+            // Allow Interactivity on board mapping ONLY if authorized master admin session
+            canvas.addEventListener('mousedown', startDrawing); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('touchstart', (e) => startDrawing(e.touches[0])); canvas.addEventListener('touchmove', (e) => { draw(e.touches[0]); e.preventDefault(); }, { passive: false }); canvas.addEventListener('touchend', stopDrawing);
+        }
+        
+        function resizeCanvas() { if(!canvas) return; canvas.width = canvas.parentElement.clientWidth - 20; canvas.height = 500; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; }
+        
+        function startDrawing(e) { 
+            if (isGuestUser) return; 
+            isDrawing = true; ctx.beginPath(); const rect = canvas.getBoundingClientRect(); ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top); 
+        }
+        function draw(e) { 
+            if (!isDrawing || isGuestUser) return; 
+            const rect = canvas.getBoundingClientRect(); ctx.lineWidth = penWidth; ctx.strokeStyle = penColor; ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top); ctx.stroke(); 
+        }
+        function stopDrawing() { 
+            if(isDrawing && !isGuestUser) { isDrawing = false; savedCanvasImage = canvas.toDataURL(); syncToFirebase('assets'); } 
+        }
+        
+        function changePenColor(color) { if(isGuestUser) return; penColor = color; }
+        function changePenWidth(width) { if(isGuestUser) return; penWidth = width; }
+        function useEraser() { if(isGuestUser) return; penColor = "#ffffff"; }
+        function clearBoard() { if(isGuestUser) return; ctx.clearRect(0, 0, canvas.width, canvas.height); savedCanvasImage = null; syncToFirebase('assets'); }
+
+        function addStudent() { 
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र छात्र नहीं जोड़ सकते!"); return; }
+            const input = document.getElementById('manual-name'); 
+            if(input.value.trim()) { 
+                let studentDb = getActiveStudentList(); 
+                studentDb.push({ name: input.value.trim(), notebook: {stars:0, dots:0}, discipline: {stars:0, dots:0}, response: {stars:0, dots:0} }); 
+                input.value = ""; syncToFirebase('students'); 
+            } 
+        }
+        function importBulkStudents() { 
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र बल्क इम्पोर्ट नहीं कर सकते!"); return; }
+            const textarea = document.getElementById('bulk-names'); const lines = textarea.value.split('\n'); 
+            let studentDb = getActiveStudentList(); 
+            lines.forEach(line => { if(line.trim()) studentDb.push({ name: line.trim(), notebook: {stars:0, dots:0}, discipline: {stars:0, dots:0}, response: {stars:0, dots:0} }); }); 
+            textarea.value = ""; syncToFirebase('students'); 
+        }
+        function deleteStudent(idx) { 
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र छात्र हटा नहीं सकते!"); return; }
+            let studentDb = getActiveStudentList(); studentDb.splice(idx,1); syncToFirebase('students'); 
+        }
+
+        function getIconRowHtml(stars, dots) {
+            let html = "<div class='icon-display-row'>";
+            for(let i=0; i<stars; i++) { html += "<i class='fa-solid fa-star star-icon'></i>"; }
+            for(let i=0; i<dots; i++) { html += "<i class='fa-solid fa-circle dot-icon'></i>"; }
+            html += "</div>"; return html;
+        }
+
+        function renderStudents() {
+            let studentDb = getActiveStudentList();
+            const container = document.getElementById('students-container'); if(!container) return;
+            container.innerHTML = "";
+            if (studentDb.length === 0) { container.innerHTML = `<p style="color:#64748b; text-align:center; padding:20px;">कोई छात्र नहीं है।</p>`; return; }
+
+            const searchKeyword = document.getElementById('student-search-input') ? document.getElementById('student-search-input').value.trim().toLowerCase() : "";
+            
+            // Set dynamic attributes depending on access controls
+            const disableAttr = isGuestUser ? "disabled style='opacity:0.5; cursor:not-allowed;'" : "";
+            const hideDeleteBtn = isGuestUser ? "style='display:none;'" : "";
+
+            studentDb.forEach((student, index) => {
+                if(!student) return;
+                if (searchKeyword !== "" && !student.name.toLowerCase().includes(searchKeyword)) return;
+                
+                const card = document.createElement('div'); card.className = 'student-card'; card.id = `student-card-${index}`;
+                card.innerHTML = `
+                    <div class="student-header"><h4>${student.name}</h4><div><button class="btn-qr-live" onclick="setLiveQR(${index})">पर्सनल QR</button><button class="btn-delete" ${hideDeleteBtn} onclick="deleteStudent(${index})">×</button></div></div>
+                    <div class="fields-grid">
+                        <div class="field-box"><span class="field-title">📚 Notebook</span>
+                            <div class="counter-row"><span>⭐ Stars: <b>${student.notebook?.stars || 0}</b></span><div class="counter-controls"><button class="btn-sm btn-plus" ${disableAttr} onclick="mod(${index},'notebook','stars',1)">+</button><button class="btn-sm btn-minus" ${disableAttr} onclick="mod(${index},'notebook','stars',-1)">-</button></div></div>
+                            <div class="counter-row"><span>🔴 Dots: <b>${student.notebook?.dots || 0}</b></span><div class="counter-controls"><button class="btn-sm btn-plus" ${disableAttr} onclick="mod(${index},'notebook','dots',1)">+</button><button class="btn-sm btn-minus" ${disableAttr} onclick="mod(${index},'notebook','dots',-1)">-</button></div></div>
+                            ${getIconRowHtml(student.notebook?.stars || 0, student.notebook?.dots || 0)}
+                        </div>
+                        <div class="field-box"><span class="field-title">🤝 Discipline</span>
+                            <div class="counter-row"><span>⭐ Stars: <b>${student.discipline?.stars || 0}</b></span><div class="counter-controls"><button class="btn-sm btn-plus" ${disableAttr} onclick="mod(${index},'discipline','stars',1)">+</button><button class="btn-sm btn-minus" ${disableAttr} onclick="mod(${index},'discipline','stars',-1)">-</button></div></div>
+                            <div class="counter-row"><span>🔴 Dots: <b>${student.discipline?.dots || 0}</b></span><div class="counter-controls"><button class="btn-sm btn-plus" ${disableAttr} onclick="mod(${index},'discipline','dots',1)">+</button><button class="btn-sm btn-minus" ${disableAttr} onclick="mod(${index},'discipline','dots',-1)">-</button></div></div>
+                            ${getIconRowHtml(student.discipline?.stars || 0, student.discipline?.dots || 0)}
+                        </div>
+                        <div class="field-box"><span class="field-title">💬 Response</span>
+                            <div class="counter-row"><span>⭐ Stars: <b>${student.response?.stars || 0}</b></span><div class="counter-controls"><button class="btn-sm btn-plus" ${disableAttr} onclick="mod(${index},'response','stars',1)">+</button><button class="btn-sm btn-minus" ${disableAttr} onclick="mod(${index},'response','stars',-1)">-</button></div></div>
+                            <div class="counter-row"><span>🔴 Dots: <b>${student.response?.dots || 0}</b></span><div class="counter-controls"><button class="btn-sm btn-plus" ${disableAttr} onclick="mod(${index},'response','dots',1)">+</button><button class="btn-sm btn-minus" ${disableAttr} onclick="mod(${index},'response','dots',-1)">-</button></div></div>
+                            ${getIconRowHtml(student.response?.stars || 0, student.response?.dots || 0)}
+                        </div>
+                    </div>
+                    <button class="wa-parent-btn" onclick="sendResultToWhatsApp(${index})"><i class="fa-brands fa-whatsapp"></i> Instant Share Link to Parent</button>
+                `;
+                container.appendChild(card);
+            });
+            generateQRGraphic();
+        }
+        
+        function mod(studentIdx, field, type, val) { 
+            if (isGuestUser) return; // Prevent counter mutations safely 
+            let studentDb = getActiveStudentList(); if(!studentDb[studentIdx]) return;
+            if(!studentDb[studentIdx][field]) studentDb[studentIdx][field] = {stars:0, dots:0};
+            studentDb[studentIdx][field][type] = Math.max(0, (studentDb[studentIdx][field][type] || 0) + val); 
+            syncToFirebase('students'); 
+        }
+        
+        function setLiveQR(idx) { activeQRIndex = idx; generateQRGraphic(); }
+        function generateQRGraphic() { 
+            let studentDb = getActiveStudentList(); if(studentDb.length === 0 || !studentDb[activeQRIndex]) return;
+            document.getElementById('qr-target-name').innerText = `चयनित: ${studentDb[activeQRIndex].name}`; document.getElementById('live-qrcode-graphic').innerHTML = ""; 
+            new QRCode(document.getElementById('live-qrcode-graphic'), { text: getQRLink(), width: 130, height: 130 }); 
+        }
+
+        function addLinkItem() { 
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र लिंक्स नहीं जोड़ सकते!"); return; }
+            const title = document.getElementById('link-title'); const url = document.getElementById('link-url'); 
+            if(title.value.trim() && url.value.trim()) { getActiveLinksList().unshift({ title: title.value.trim(), url: url.value.trim() }); title.value = ""; url.value = ""; syncToFirebase('links'); } 
+        }
+        function renderLinks() { const view = document.getElementById('links-list-view'); if(!view) return; view.innerHTML = ""; getActiveLinksList().forEach((l, idx) => { const item = document.createElement('div'); item.innerHTML = `<strong>${l.title}</strong>: <a href="${l.url}" target="_blank">${l.url}</a>`; view.appendChild(item); }); }
+
+        function uploadToGallery(event) { 
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र डाक्यूमेंट्स अपलोड नहीं कर सकते!"); event.target.value = ""; return; }
+            const file = event.target.files[0]; if (!file) return; 
+            const reader = new FileReader(); 
+            
+            const fileName = file.name;
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+            let fileType = 'image';
+            
+            if (fileExtension === 'pdf') fileType = 'pdf';
+            else if (['doc', 'docx'].includes(fileExtension)) fileType = 'word';
+            else if (['ppt', 'pptx'].includes(fileExtension)) fileType = 'powerpoint';
+
+            reader.onload = function(e) { 
+                let list = getActiveGalleryList();
+                list.unshift({ 
+                    src: e.target.result, 
+                    name: fileName,
+                    type: fileType 
+                }); 
+                syncToFirebase('gallery'); 
+            }; 
+            reader.readAsDataURL(file); 
+        }
+        
+        function deleteGalleryItem(idx) {
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र दस्तावेज़ हटा नहीं सकते!"); return; }
+            let list = getActiveGalleryList();
+            list.splice(idx, 1);
+            syncToFirebase('gallery');
+        }
+
+        function renderGallery() { 
+            const view = document.getElementById('live-gallery-view'); if(!view) return; 
+            view.innerHTML = ""; 
+            let list = getActiveGalleryList();
+            
+            const hideDeleteBtn = isGuestUser ? "style='display:none;'" : "";
+            
+            list.forEach((item, idx) => { 
+                const element = document.createElement('div'); 
+                element.className = 'gallery-item'; 
+                
+                let htmlContent = `<button class="delete-gallery-btn" ${hideDeleteBtn} onclick="deleteGalleryItem(${idx})">×</button>`;
+                
+                if (!item.type || item.type === 'image') {
+                    htmlContent += `<img src="${item.src}" onclick="openLightbox('${item.src}')" alt="${item.name || 'Image'}">`;
+                } else {
+                    let iconClass = 'fa-file-lines';
+                    let iconColor = '#64748b';
+                    
+                    if (item.type === 'pdf') { iconClass = 'fa-file-pdf'; iconColor = '#dc2626'; }
+                    else if (item.type === 'word') { iconClass = 'fa-file-word'; iconColor = '#2563eb'; }
+                    else if (item.type === 'powerpoint') { iconClass = 'fa-file-powerpoint'; iconColor = '#ea580c'; }
+                    
+                    htmlContent += `
+                        <div class="gallery-doc-card" onclick="handleDocumentAction('${item.src}', '${item.name || 'document'}')">
+                            <i class="fa-solid ${iconClass}" style="color: ${iconColor};"></i>
+                            <span>${item.name || 'Unnamed Document'}</span>
+                        </div>
+                    `;
+                }
+                
+                element.innerHTML = htmlContent;
+                view.appendChild(element); 
+            }); 
+        }
+
+        function handleDocumentAction(base64Data, filename) {
+            try {
+                const arr = base64Data.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                
+                while(n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                
+                const fileBlob = new Blob([u8arr], { type: mime });
+                const blobUrl = URL.createObjectURL(fileBlob);
+                
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.href = blobUrl;
+                downloadAnchor.target = '_blank';
+                downloadAnchor.download = filename;
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            } catch(e) {
+                alert("❌ फ़ाइल लोड करने में असमर्थ। कृपया पुनः प्रयास करें।");
+            }
+        }
+
+        window.onload = function() { checkParentViewRoute(); };
+    </script>
+</body>
+</html>
