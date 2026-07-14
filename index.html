@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduSmart Ultimate Portal - Document & Media Support</title>
+    <title>EduSmart Ultimate Portal - Multi-User Document & Media Support</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <style>
@@ -21,22 +22,30 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
         body { background-color: var(--bg-tint); color: #1f2937; padding-bottom: 60px; }
 
-        #login-screen, #parent-view-screen {
+        #login-screen, #parent-view-screen, #admin-dashboard-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-tint); display: flex; justify-content: center; align-items: center; z-index: 1000;
             overflow-y: auto; padding: 20px;
         }
-        .login-card, .parent-card {
+        .login-card, .parent-card, .admin-card {
             background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            text-align: center; width: 100%; max-width: 450px;
+            text-align: center; width: 100%; max-width: 900px;
         }
-        .login-card input {
-            width: 100%; padding: 12px; margin: 12px 0; border: 2px solid #bbf7d0; border-radius: 8px; outline: none;
+        .login-card { max-width: 450px; }
+        .login-card input, .login-card select {
+            width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #bbf7d0; border-radius: 8px; outline: none;
+            background: white; font-size: 14px;
         }
 
         .app-bar {
             background-color: var(--primary); color: white; padding: 15px;
             display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;
+        }
+        .user-info-chip {
+            background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 20px; font-size: 13px; display: flex; align-items: center; gap: 8px;
+        }
+        .logout-bar-btn {
+            background: #ef4444; border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;
         }
         .mic-btn {
             background: #dc2626; border: none; color: white; padding: 10px 20px; border-radius: 50px; cursor: pointer;
@@ -163,9 +172,19 @@
         #live-video { width: 100%; max-width: 400px; height: auto; background: #000; border-radius: 6px; display: none; }
         .camera-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         
-        /* New Guest Banner Styling */
         .guest-alert-banner {
             display: none; background: #ef4444; color: white; padding: 8px 15px; font-size: 13px; font-weight: bold; text-align: center;
+        }
+
+        /* एडमिन लॉगिन पैनल टेबल स्टाइल */
+        .admin-table {
+            width: 100%; border-collapse: collapse; margin-top: 15px; background: white; text-align: left;
+        }
+        .admin-table th, .admin-table td {
+            padding: 12px; border: 1px solid #cbd5e1; font-size: 13px;
+        }
+        .admin-table th {
+            background: var(--primary); color: white;
         }
     </style>
 </head>
@@ -221,16 +240,75 @@
         </div>
     </div>
 
+    <div id="admin-dashboard-screen" style="display:none;">
+        <div class="admin-card">
+            <h2 style="color: var(--primary); margin-bottom: 10px;"><i class="fa-solid fa-user-shield"></i> एडमिन कंट्रोल पैनल (सभी यूज़र्स का डेटा)</h2>
+            <p style="font-size: 13px; color: #475569; margin-bottom: 20px;">यहाँ आप हर यूज़र आईडी से मॉडिफाई / चेंज किए गए पूरे डेटा को देख सकते हैं।</p>
+            
+            <div style="max-height: 500px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 8px;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>यूज़र UID / ईमेल</th>
+                            <th>क्लास एवं टॉपिक (Scope Key)</th>
+                            <th>छात्र एवं लाइव स्कोर कार्ड मैट्रिक्स</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-logs-tbody">
+                        <tr>
+                            <td colspan="3" style="text-align:center; padding:20px; color:#64748b;">क्लाउड से डेटा लोड किया जा रहा है...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="display:flex; justify-content: space-between; gap: 15px;">
+                <button onclick="clearAllUsersCloudData()" style="padding: 12px 20px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fa-solid fa-trash-can"></i> सारा क्लाउड डेटा साफ़ करें</button>
+                <button class="logout-bar-btn" onclick="logoutFromFirebase()" style="padding:12px 20px; font-size:14px;"><i class="fa-solid fa-power-off"></i> एडमिन लॉगआउट</button>
+            </div>
+        </div>
+    </div>
+
     <div id="login-screen">
         <div class="login-card">
-            <i class="fa-solid fa-lock" style="font-size: 50px; color: var(--primary);"></i>
-            <h2 style="margin: 15px 0;">सुरक्षित क्लाउड लॉगिन</h2>
-            <p style="font-size: 12px; color: #64748b; margin-bottom: 5px;">पासवर्ड अब क्लाउड डेटाबेस द्वारा लाइव जाँचा जाता है।</p>
-            <input type="text" id="username" placeholder="यूज़रनेम" maxlength="15" autocomplete="off">
-            <input type="password" id="password" placeholder="सुरक्षित पासवर्ड प्रविष्ट करें" maxlength="25" autocomplete="off">
-            <button onclick="loginWithCloudSecurity()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-shield-halved"></i> प्रमाणित करें</button>
+            <div id="main-login-fields">
+                <i class="fa-solid fa-users-gear" style="font-size: 50px; color: var(--primary);"></i>
+                <h2 style="margin: 15px 0;">EduSmart सुरक्षित पोर्टल</h2>
+                <p style="font-size: 12px; color: #64748b; margin-bottom: 15px;">मल्टी-यूज़र लॉगिन एवं एडमिन डैशबोर्ड प्रणाली।</p>
+                
+                <div style="text-align: left; margin-bottom: 10px;">
+                    <label style="font-size: 12px; font-weight: bold; color: #475569;">लॉगिन रोल चुनें (Login Role):</label>
+                    <select id="login-role" onchange="toggleAdminLoginFields()">
+                        <option value="user">सामान्य यूज़र / टीचर (User)</option>
+                        <option value="admin">सिस्टम एडमिन (Admin)</option>
+                    </select>
+                </div>
+
+                <input type="email" id="username" placeholder="ईमेल आईडी (Email ID)" autocomplete="email">
+                <input type="password" id="password" placeholder="सुरक्षित पासवर्ड" autocomplete="current-password">
+                
+                <button id="main-login-btn" onclick="loginWithFirebase()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top: 8px;"><i class="fa-solid fa-right-to-bracket"></i> लॉगिन करें</button>
+                <button id="signup-btn" onclick="signUpWithFirebase()" style="width:100%; padding:12px; background:#0284c7; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top: 10px;"><i class="fa-solid fa-user-plus"></i> नया अकाउंट बनाएं (Sign Up)</button>
+                
+                <div id="pass-reset-links" style="margin-top: 15px; display: flex; justify-content: space-between; gap: 10px;">
+                    <button onclick="togglePasswordSection(true)" style="background:none; border:none; color:#2563eb; font-weight:bold; cursor:pointer; font-size:13px;"><i class="fa-solid fa-key"></i> पासवर्ड बदलें</button>
+                    <button onclick="resetPasswordViaEmail()" style="background:none; border:none; color:#ea580c; font-weight:bold; cursor:pointer; font-size:13px;"><i class="fa-solid fa-envelope-open-text"></i> पासवर्ड भूल गए?</button>
+                </div>
+            </div>
+
+            <div id="change-password-fields" style="display: none; text-align: left;">
+                <h3 style="margin-bottom: 15px; text-align: center; color: #b91c1c;"><i class="fa-solid fa-user-shield"></i> नया पासवर्ड सेट करें</h3>
+                <p style="font-size: 11px; color: #64748b; margin-bottom: 10px;">पासवर्ड बदलने के लिए आपको पहले लॉगिन होना जरूरी है।</p>
+                
+                <label style="font-size:12px; font-weight:bold; color:#475569;">नया सुरक्षित पासवर्ड:</label>
+                <input type="password" id="new-password" placeholder="कम से कम 6 अंकों का नया पासवर्ड">
+                
+                <button onclick="updateFirebasePassword()" style="width:100%; padding:12px; background:#b91c1c; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;"><i class="fa-solid fa-floppy-disk"></i> नया पासवर्ड अपडेट करें</button>
+                
+                <button onclick="togglePasswordSection(false)" style="width:100%; padding:10px; background:#64748b; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:12px;"><i class="fa-solid fa-arrow-left"></i> वापस लॉगिन पर जाएँ</button>
+            </div>
             
-            <div style="margin: 20px 0 10px 0; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
+            <div id="guest-login-container" style="margin: 20px 0 10px 0; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
                 <button onclick="loginAsGuest()" style="width:100%; padding:12px; background:#475569; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-eye"></i> गेस्ट लॉगिन (Read-Only View)</button>
             </div>
         </div>
@@ -240,10 +318,16 @@
         <div id="guest-mode-banner" class="guest-alert-banner"><i class="fa-solid fa-triangle-exclamation"></i> आप गेस्ट मोड (Read-Only) में हैं। आप केवल डेटा देख सकते हैं, कोई बदलाव या अपलोड नहीं कर सकते।</div>
         
         <div class="app-bar">
-            <h2><i class="fa-solid fa-bolt"></i> EduSmart Ultimate Portal - Document Enabled</h2>
-            <button class="mic-btn" id="mic-trigger" onclick="toggleVoice()">
-                <i class="fa-solid fa-microphone"></i> <span id="mic-status">माइक ऑन करें</span>
-            </button>
+            <h2><i class="fa-solid fa-bolt"></i> EduSmart Ultimate Portal</h2>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="user-info-chip" id="user-display-chip">
+                    <i class="fa-solid fa-user"></i> <span id="current-user-email">guest@edusmart.com</span>
+                </div>
+                <button class="logout-bar-btn" onclick="logoutFromFirebase()"><i class="fa-solid fa-power-off"></i> लॉगआउट</button>
+                <button class="mic-btn" id="mic-trigger" onclick="toggleVoice()">
+                    <i class="fa-solid fa-microphone"></i> <span id="mic-status">माइक ऑन करें</span>
+                </button>
+            </div>
         </div>
 
         <div class="instruction-container">
@@ -403,6 +487,7 @@
     </div>
 
     <script>
+        // Firebase Configuration (पहले से दी गई सेटिंग्स)
         const firebaseConfig = {
           apiKey: "AIzaSyCBW3EaQo-XiY05RpkG3eKiuhI5OcQZqu4",
           authDomain: "edusmart-fbe62.firebaseapp.com",
@@ -416,7 +501,16 @@
         
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        const auth = firebase.auth();
 
+        // एडमिन डिफ़ॉल्ट क्रेडेंशियल
+        const ADMIN_USERNAME = "admin";
+        const ADMIN_PASSWORD = "admin123";
+
+        // लोकल डेटा स्ट्रक्चर (मल्टी-यूज़र पृथक्करण के लिए)
+        let currentUserUid = null; 
+        let isAdminLoggedIn = false;
+        
         let contextDb = {
             classes: ["Class 6", "Class 7", "Class 8"],
             sections: ["Section A", "Section B", "Section C"],
@@ -425,7 +519,6 @@
         };
         let relationalStudentDb = {};
         let relationalLinksDb = {};
-        
         let scopeLiveImages = {}; 
         let scopeGalleryDb = {};   
 
@@ -436,8 +529,6 @@
         let penColor = "#000000", penWidth = 6;
         let voiceEngine, micActive = false;
         let liveStream = null;
-        
-        // New Global Variable to Track Access Authorization Mode
         let isGuestUser = false;
 
         const engToHinMap = {
@@ -447,6 +538,7 @@
             "jyoti": "ज्योति", "ravi": "रवि", "karan": "करण", "arjun": "अर्जुन", "raj": "राज"
         };
 
+        // Lightbox Functions
         function openLightbox(src) {
             const modal = document.getElementById('zoom-lightbox-modal');
             const img = document.getElementById('lightbox-target-img');
@@ -457,6 +549,31 @@
         function resetZoom() { currentZoomLevel = 1; document.getElementById('lightbox-target-img').style.transform = `scale(${currentZoomLevel})`; }
         function closeLightboxOnBg(e) { if(e.target.id === "img-wrapper") closeLightbox(); }
 
+        // रोल के अनुसार लॉगिन फ़ील्ड्स को बदलना
+        function toggleAdminLoginFields() {
+            const role = document.getElementById('login-role').value;
+            const signupBtn = document.getElementById('signup-btn');
+            const passResetLinks = document.getElementById('pass-reset-links');
+            const guestContainer = document.getElementById('guest-login-container');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+
+            if(role === 'admin') {
+                usernameInput.placeholder = "एडमिन यूज़रनेम दर्ज करें";
+                passwordInput.placeholder = "एडमिन पासवर्ड दर्ज करें";
+                signupBtn.style.display = 'none';
+                passResetLinks.style.display = 'none';
+                guestContainer.style.display = 'none';
+            } else {
+                usernameInput.placeholder = "ईमेल आईडी (Email ID)";
+                passwordInput.placeholder = "सुरक्षित पासवर्ड";
+                signupBtn.style.display = 'block';
+                passResetLinks.style.display = 'flex';
+                guestContainer.style.display = 'block';
+            }
+        }
+
+        // व्यक्तिगत यूज़र के रूट पर डेटा सिंक करने की विधि
         function getCurrentScopeKey() {
             const cls = document.getElementById('g-class').value || "DefaultClass";
             const sec = document.getElementById('g-section').value || "DefaultSec";
@@ -489,55 +606,82 @@
             return scopeGalleryDb[key];
         }
 
+        // Firebase Sync - यूज़र विशिष्ट नोड के अंदर सेव करना
         function syncToFirebase(node) {
-            // Guardrail logic to strictly block write commits if Guest User Session
-            if (isGuestUser) { return; }
+            if (isGuestUser || isAdminLoggedIn || !currentUserUid) return;
             
             const key = getCurrentScopeKey();
+            const userRef = database.ref(`users/${currentUserUid}`);
+
             if(node === 'students') {
-                database.ref('relationalStudentDb').set(relationalStudentDb);
+                userRef.child('relationalStudentDb').set(relationalStudentDb);
             } else if(node === 'links') {
-                database.ref('relationalLinksDb').set(relationalLinksDb);
+                userRef.child('relationalLinksDb').set(relationalLinksDb);
             } else if(node === 'contexts') {
-                database.ref('contextDb').set(contextDb);
+                userRef.child('contextDb').set(contextDb);
             } else if(node === 'gallery') {
-                database.ref('scopeGalleryDb').set(scopeGalleryDb);
+                userRef.child('scopeGalleryDb').set(scopeGalleryDb);
             } else if(node === 'livePhoto') {
-                database.ref(`scopeLiveImages/${key}`).set(scopeLiveImages[key] || "");
+                userRef.child(`scopeLiveImages/${key}`).set(scopeLiveImages[key] || "");
             } else {
-                database.ref('boardAndImages').set({
+                userRef.child('boardAndImages').set({
                     savedCanvasImage: savedCanvasImage || ""
                 });
             }
         }
 
-        function startCloudSyncListeners() {
-            database.ref('contextDb').on('value', snapshot => {
-                if(snapshot.exists()) { contextDb = snapshot.val(); renderContextDropdowns(); }
+        // Authentication State Observer
+        auth.onAuthStateChanged(user => {
+            if(isAdminLoggedIn) {
+                // एडमिन लॉगिन के दौरान आथ सिंक को बायपास करें
+                return;
+            }
+            if (user) {
+                currentUserUid = user.uid;
+                isGuestUser = false;
+                document.getElementById('current-user-email').innerText = user.email;
+                document.getElementById('guest-mode-banner').style.display = 'none';
+                
+                startCloudSyncListeners(user.uid);
+                executeApplicationInterfaceEntry();
+            } else if (!isGuestUser) {
+                showLoginScreen();
+            }
+        });
+
+        function startCloudSyncListeners(uid) {
+            const userRef = database.ref(`users/${uid}`);
+
+            userRef.child('contextDb').on('value', snapshot => {
+                if(snapshot.exists()) { contextDb = snapshot.val(); }
+                renderContextDropdowns();
             });
 
-            database.ref('relationalStudentDb').on('value', snapshot => {
-                if(snapshot.exists()) { relationalStudentDb = snapshot.val(); renderStudents(); }
-                else { relationalStudentDb = {}; renderStudents(); }
+            userRef.child('relationalStudentDb').on('value', snapshot => {
+                if(snapshot.exists()) { relationalStudentDb = snapshot.val(); }
+                else { relationalStudentDb = {}; }
+                renderStudents();
             });
 
-            database.ref('relationalLinksDb').on('value', snapshot => {
-                if(snapshot.exists()) { relationalLinksDb = snapshot.val(); renderLinks(); }
+            userRef.child('relationalLinksDb').on('value', snapshot => {
+                if(snapshot.exists()) { relationalLinksDb = snapshot.val(); }
+                else { relationalLinksDb = {}; }
+                renderLinks();
             });
 
-            database.ref('scopeGalleryDb').on('value', snapshot => {
+            userRef.child('scopeGalleryDb').on('value', snapshot => {
                 if(snapshot.exists()) { scopeGalleryDb = snapshot.val(); }
                 else { scopeGalleryDb = {}; }
                 renderGallery();
             });
 
-            database.ref('scopeLiveImages').on('value', snapshot => {
+            userRef.child('scopeLiveImages').on('value', snapshot => {
                 if(snapshot.exists()) { scopeLiveImages = snapshot.val(); }
                 else { scopeLiveImages = {}; }
                 renderLiveDisplayImage();
             });
 
-            database.ref('boardAndImages').on('value', snapshot => {
+            userRef.child('boardAndImages').on('value', snapshot => {
                 if(snapshot.exists()) {
                     const data = snapshot.val();
                     if(data.savedCanvasImage && data.savedCanvasImage !== savedCanvasImage) {
@@ -552,75 +696,267 @@
             });
         }
 
-        function loginWithCloudSecurity() {
-            const uName = document.getElementById('username').value.trim();
-            const pWord = document.getElementById('password').value.trim();
+        // Firebase Sign Up
+        function signUpWithFirebase() {
+            const email = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
 
-            if(!uName || !pWord) {
-                alert("⚠️ कृपया यूज़रनेम और पासवर्ड दोनों दर्ज करें।");
+            if(!email || !pass) {
+                alert("⚠️ कृपया नया अकाउंट बनाने के लिए वैध ईमेल और पासवर्ड दर्ज करें।");
                 return;
             }
 
-            const mySecureUsername = "admin";
-            const mySecurePassword = "MyNewSecretPassword123";
+            auth.createUserWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    alert("🎉 अकाउंट सफलतापूर्वक बना लिया गया है! आपका लॉगिन भी हो चुका है।");
+                })
+                .catch((error) => {
+                    alert("❌ साइनअप विफल: " + error.message);
+                });
+        }
 
-            if(uName === mySecureUsername && pWord === mySecurePassword) {
-                isGuestUser = false;
-                document.getElementById('guest-mode-banner').style.display = 'none';
-                executeApplicationInterfaceEntry();
+        // Firebase / Admin Login
+        function loginWithFirebase() {
+            const role = document.getElementById('login-role').value;
+            const email = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            if(!email || !pass) {
+                alert("⚠️ कृपया यूज़रनेम और पासवर्ड दर्ज करें।");
+                return;
+            }
+
+            if(role === 'admin') {
+                // एडमिन क्रेडेंशियल सत्यापन
+                if(email === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
+                    isAdminLoggedIn = true;
+                    showAdminDashboard();
+                } else {
+                    alert("❌ गलत एडमिन यूज़रनेम या पासवर्ड!");
+                }
             } else {
-                alert("❌ गलत यूज़रनेम या पासवर्ड! पहुँच अस्वीकृत।");
+                // सामान्य यूज़र लॉगिन
+                auth.signInWithEmailAndPassword(email, pass)
+                    .then((userCredential) => {
+                        // onAuthStateChanged हैंडल करेगा बाकी प्रोसेस
+                    })
+                    .catch((error) => {
+                        alert("❌ लॉगिन असफल: " + error.message);
+                    });
             }
         }
-        
-        // New Login Controller for completely bypassing credentials securely into View Only mode
+
+        // एडमिन डैशबोर्ड दिखाना और सभी यूज़र्स का डेटा क्लाउड से फ़ेच करना
+        function showAdminDashboard() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-interface').style.display = 'none';
+            document.getElementById('admin-dashboard-screen').style.display = 'flex';
+            loadAllUsersCloudData();
+        }
+
+        // फ़ायरबेस से सभी यूज़र्स का पूरा इतिहास और डेटा लोड करना
+        function loadAllUsersCloudData() {
+            const tbody = document.getElementById('admin-logs-tbody');
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:20px; color:#166534;">🔄 क्लाउड डेटा सिंक किया जा रहा है...</td></tr>`;
+
+            database.ref('users').on('value', snapshot => {
+                if(!snapshot.exists()) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:20px; color:#64748b;">क्लाउड में अभी तक कोई डेटा मौजूद नहीं है।</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = "";
+                const allUsers = snapshot.val();
+
+                for(let uid in allUsers) {
+                    const userData = allUsers[uid];
+                    const studentsDb = userData.relationalStudentDb || {};
+                    const emailRepresentation = uid; // वास्तविक ईमेल ट्रैक करने के लिए
+
+                    if(Object.keys(studentsDb).length === 0) {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td><b>${emailRepresentation}</b></td>
+                                <td colspan="2" style="color: #64748b; font-style: italic;">इस यूज़र ने अभी तक कोई छात्र डेटा नहीं बनाया है।</td>
+                            </tr>
+                        `;
+                    }
+
+                    for(let scopeKey in studentsDb) {
+                        const studentsList = studentsDb[scopeKey] || [];
+                        let studentsHtml = "<div style='display:flex; flex-direction:column; gap:5px;'>";
+                        
+                        studentsList.forEach(std => {
+                            if(std) {
+                                studentsHtml += `
+                                    <div>
+                                        👤 <b>${std.name}</b>: 
+                                        NB (⭐${std.notebook?.stars || 0} | 🔴${std.notebook?.dots || 0}) | 
+                                        Disp (⭐${std.discipline?.stars || 0} | 🔴${std.discipline?.dots || 0}) | 
+                                        Resp (⭐${std.response?.stars || 0} | 🔴${std.response?.dots || 0})
+                                    </div>
+                                `;
+                            }
+                        });
+                        studentsHtml += "</div>";
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td><b>${emailRepresentation}</b></td>
+                                <td style="color:#1e40af; font-weight: bold;">${scopeKey.split('___').join(' ➔ ')}</td>
+                                <td>${studentsHtml}</td>
+                            </tr>
+                        `;
+                    }
+                }
+
+                if(tbody.innerHTML === "") {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:20px; color:#64748b;">सक्रिय डेटा लिस्ट ख़ाली है।</td></tr>`;
+                }
+            });
+        }
+
+        // एडमिन द्वारा सभी यूज़र्स का डेटा डिलीट करना
+        function clearAllUsersCloudData() {
+            if(confirm("⚠️ क्या आप निश्चित रूप से सभी रजिस्टर्ड यूज़र्स का पूरा डेटाबेस डिलीट करना चाहते हैं? यह क्रिया वापस नहीं ली जा सकती!")) {
+                database.ref('users').remove()
+                    .then(() => {
+                        alert("✅ सारा क्लाउड डेटा सफलतापूर्वक साफ़ कर दिया गया है!");
+                    })
+                    .catch(err => {
+                        alert("❌ विफलता: " + err.message);
+                    });
+            }
+        }
+
+        // Firebase / Admin Logout
+        function logoutFromFirebase() {
+            if(isAdminLoggedIn) {
+                isAdminLoggedIn = false;
+                showLoginScreen();
+            } else {
+                auth.signOut().then(() => {
+                    isGuestUser = false;
+                    currentUserUid = null;
+                    showLoginScreen();
+                });
+            }
+        }
+
+        // Password Reset via Email
+        function resetPasswordViaEmail() {
+            const email = document.getElementById('username').value.trim();
+            if(!email) {
+                alert("⚠️ पासवर्ड रीसेट लिंक भेजने के लिए ईमेल आईडी प्रविष्ट करें।");
+                return;
+            }
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    alert("📧 पासवर्ड बदलने का लिंक आपके ईमेल आईडी पर भेज दिया गया है।");
+                })
+                .catch((error) => {
+                    alert("❌ त्रुटि: " + error.message);
+                });
+        }
+
+        // Change Password Logged in User
+        function updateFirebasePassword() {
+            const user = auth.currentUser;
+            const newPass = document.getElementById('new-password').value.trim();
+
+            if(!user) {
+                alert("⚠️ इस सुविधा के लिए आपका लॉगिन होना अनिवार्य है।");
+                return;
+            }
+            if(newPass.length < 6) {
+                alert("⚠️ पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।");
+                return;
+            }
+
+            user.updatePassword(newPass)
+                .then(() => {
+                    alert("🎉 पासवर्ड सफलतापूर्वक बदल दिया गया है!");
+                    document.getElementById('new-password').value = "";
+                    togglePasswordSection(false);
+                })
+                .catch((error) => {
+                    alert("❌ एरर: " + error.message);
+                });
+        }
+
+        function togglePasswordSection(showChangeForm) {
+            if(showChangeForm) {
+                document.getElementById('main-login-fields').style.display = 'none';
+                document.getElementById('change-password-fields').style.display = 'block';
+            } else {
+                document.getElementById('main-login-fields').style.display = 'block';
+                document.getElementById('change-password-fields').style.display = 'none';
+            }
+        }
+
+        function showLoginScreen() {
+            document.getElementById('login-screen').style.display = 'flex'; 
+            document.getElementById('app-interface').style.display = 'none';
+            document.getElementById('parent-view-screen').style.display = 'none';
+            document.getElementById('admin-dashboard-screen').style.display = 'none';
+        }
+
         function loginAsGuest() {
             isGuestUser = true;
+            currentUserUid = null;
+            isAdminLoggedIn = false;
             document.getElementById('guest-mode-banner').style.display = 'block';
-            executeApplicationInterfaceEntry();
+            document.getElementById('current-user-email').innerText = "guest@edusmart.com";
             
-            // Add UI Lock delays to ensure input vectors are dynamically disabled 
+            contextDb = { classes: ["Class 6"], sections: ["Section A"], subjects: ["Science"], chapters: ["Chapter 1"], concepts: ["Concept 1"] };
+            relationalStudentDb = {};
+            relationalLinksDb = {};
+            scopeGalleryDb = {};
+            scopeLiveImages = {};
+            
+            executeApplicationInterfaceEntry();
             setTimeout(() => { applyGuestUIRestrictions(); }, 500);
         }
         
         function executeApplicationInterfaceEntry() {
             document.getElementById('login-screen').style.display = 'none'; 
             document.getElementById('app-interface').style.display = 'block';
+            document.getElementById('admin-dashboard-screen').style.display = 'none';
             renderContextDropdowns();
             onContextChange();
             initWritingBoard();
             initVoiceEngine();
-            startCloudSyncListeners();
         }
         
-        // Helper block to strictly strip out control interfaces dynamically for read-only view
         function applyGuestUIRestrictions() {
             if(!isGuestUser) return;
             
-            // Disable native structural actions
             document.querySelectorAll('.restricted-action').forEach(element => {
                 element.disabled = true;
                 element.style.opacity = '0.5';
                 element.style.pointerEvents = 'none';
             });
             
-            // Force disable custom lists items rendered later
             renderStudents();
         }
 
+        // Parent View Screen Logic
         function checkParentViewRoute() {
             const urlParams = new URLSearchParams(window.location.search);
             const pName = urlParams.get('name');
             const scopeKey = urlParams.get('scope');
-            if(pName && scopeKey) {
+            const ownerUid = urlParams.get('owner'); 
+            
+            if(pName && scopeKey && ownerUid) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app-interface').style.display = 'none';
                 document.getElementById('parent-view-screen').style.display = 'flex';
+                document.getElementById('admin-dashboard-screen').style.display = 'none';
                 
                 document.getElementById('p-student-name').innerText = `छात्र रिपोर्ट कार्ड: ${decodeURIComponent(pName)}`;
                 document.getElementById('p-scope-details').innerText = scopeKey.split('___').join(' ➔ ');
 
-                database.ref(`relationalStudentDb/${scopeKey}`).on('value', snapshot => {
+                database.ref(`users/${ownerUid}/relationalStudentDb/${scopeKey}`).on('value', snapshot => {
                     if(snapshot.exists()) {
                         const list = snapshot.val();
                         const current = Object.values(list).find(s => s && s.name === decodeURIComponent(pName));
@@ -714,9 +1050,10 @@
         function getQRLink(customIdx = null) {
             let studentDb = getActiveStudentList(); 
             let targetIdx = customIdx !== null ? customIdx : activeQRIndex;
-            if(studentDb.length === 0 || !studentDb[targetIdx]) return window.location.href.split('?')[0];
+            const baseUrl = window.location.href.split('?')[0];
+            if(studentDb.length === 0 || !studentDb[targetIdx]) return baseUrl;
             const current = studentDb[targetIdx];
-            return `${window.location.href.split('?')[0]}?name=${encodeURIComponent(current.name)}&scope=${encodeURIComponent(getCurrentScopeKey())}`;
+            return `${baseUrl}?name=${encodeURIComponent(current.name)}&scope=${encodeURIComponent(getCurrentScopeKey())}&owner=${currentUserUid || "guest"}`;
         }
 
         function sendResultToWhatsApp(idx) {
@@ -789,7 +1126,7 @@
                         scopeGalleryDb = parsedData.scopeGalleryDb || {};
                         scopeLiveImages = parsedData.scopeLiveImages || {};
 
-                        database.ref().update({
+                        database.ref(`users/${currentUserUid}`).update({
                             contextDb: contextDb,
                             relationalStudentDb: relationalStudentDb,
                             relationalLinksDb: relationalLinksDb,
@@ -830,7 +1167,7 @@
                     if(speechStr.includes("लिंक") || speechStr.includes("link")) { switchTab(4); return; }
                     if(speechStr.includes("एआई") || speechStr.includes("ai") || speechStr.includes("असिस्टेंट") || speechStr.includes("जनरेटर") || speechStr.includes("generator")) { switchTab(5); return; }
 
-                    if (isGuestUser) return; // Disallow voice score modifications for Guest Sessions
+                    if (isGuestUser) return;
 
                     let studentDb = getActiveStudentList();
                     for (let i = 0; i < studentDb.length; i++) {
@@ -930,7 +1267,6 @@
         function initWritingBoard() {
             canvas = document.getElementById('writingCanvas'); ctx = canvas.getContext('2d'); resizeCanvas();
             
-            // Allow Interactivity on board mapping ONLY if authorized master admin session
             canvas.addEventListener('mousedown', startDrawing); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('touchstart', (e) => startDrawing(e.touches[0])); canvas.addEventListener('touchmove', (e) => { draw(e.touches[0]); e.preventDefault(); }, { passive: false }); canvas.addEventListener('touchend', stopDrawing);
         }
@@ -954,6 +1290,7 @@
         function useEraser() { if(isGuestUser) return; penColor = "#ffffff"; }
         function clearBoard() { if(isGuestUser) return; ctx.clearRect(0, 0, canvas.width, canvas.height); savedCanvasImage = null; syncToFirebase('assets'); }
 
+        // छात्र जोड़ने का फंक्शन
         function addStudent() { 
             if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र छात्र नहीं जोड़ सकते!"); return; }
             const input = document.getElementById('manual-name'); 
@@ -990,7 +1327,6 @@
 
             const searchKeyword = document.getElementById('student-search-input') ? document.getElementById('student-search-input').value.trim().toLowerCase() : "";
             
-            // Set dynamic attributes depending on access controls
             const disableAttr = isGuestUser ? "disabled style='opacity:0.5; cursor:not-allowed;'" : "";
             const hideDeleteBtn = isGuestUser ? "style='display:none;'" : "";
 
@@ -1026,7 +1362,7 @@
         }
         
         function mod(studentIdx, field, type, val) { 
-            if (isGuestUser) return; // Prevent counter mutations safely 
+            if (isGuestUser) return; 
             let studentDb = getActiveStudentList(); if(!studentDb[studentIdx]) return;
             if(!studentDb[studentIdx][field]) studentDb[studentIdx][field] = {stars:0, dots:0};
             studentDb[studentIdx][field][type] = Math.max(0, (studentDb[studentIdx][field][type] || 0) + val); 
@@ -1142,7 +1478,12 @@
             }
         }
 
-        window.onload = function() { checkParentViewRoute(); };
+        window.onload = function() { 
+            toggleAdminLoginFields();
+            if(!checkParentViewRoute()) {
+                // डिफ़ॉल्ट रूप से पेज ऑथेंटिकेशन स्टेट चेक करेगा
+            }
+        };
     </script>
 </body>
 </html>
