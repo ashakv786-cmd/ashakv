@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduSmart Ultimate Portal - Multi-User Document & Media Support</title>
+    <title>EduSmart Ultimate Portal - Relational Multi-Scope Architecture</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
@@ -32,7 +32,7 @@
             text-align: center; width: 100%; max-width: 900px;
         }
         .login-card { max-width: 450px; }
-        .login-card input, .login-card select {
+        .login-card input, .login-card select, .in-app-input {
             width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #bbf7d0; border-radius: 8px; outline: none;
             background: white; font-size: 14px;
         }
@@ -66,13 +66,14 @@
             background: white; padding: 12px; display: flex; gap: 10px; overflow-x: auto;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02); align-items: center;
         }
-        .context-group { display: flex; align-items: center; gap: 5px; background: #f8fafc; padding: 4px 8px; border-radius: 8px; border: 1px solid #cbd5e1; white-space: nowrap; }
+        .context-group { display: flex; align-items: center; gap: 4px; background: #f8fafc; padding: 6px 10px; border-radius: 8px; border: 1px solid #cbd5e1; white-space: nowrap; }
         .context-group label { font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase; }
         .context-select {
             padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff;
             font-weight: 600; color: var(--primary); min-width: 120px; outline: none;
         }
         .add-context-btn { background: var(--primary); color: white; border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+        .remove-context-btn { background: #ef4444; color: white; border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; justify-content: center; }
 
         .tab-bar { display: flex; overflow-x: auto; background: white; padding: 10px; gap: 10px; border-bottom: 1px solid #e5e7eb; }
         .tab-btn {
@@ -85,6 +86,7 @@
         .tab-btn:nth-child(4) { background-color: #2563eb; }
         .tab-btn:nth-child(5) { background-color: #0d9488; }
         .tab-btn:nth-child(6) { background-color: #06b6d4; }
+        .tab-btn:nth-child(7) { background-color: #4b5563; }
         .tab-btn.active { border: 3px solid #000; transform: scale(1.02); }
 
         .tab-content { display: none; padding: 20px; max-width: 1200px; margin: 0 auto; }
@@ -176,7 +178,6 @@
             display: none; background: #ef4444; color: white; padding: 8px 15px; font-size: 13px; font-weight: bold; text-align: center;
         }
 
-        /* एडमिन लॉगिन पैनल टेबल स्टाइल */
         .admin-table {
             width: 100%; border-collapse: collapse; margin-top: 15px; background: white; text-align: left;
         }
@@ -290,22 +291,9 @@
                 <button id="main-login-btn" onclick="loginWithFirebase()" style="width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top: 8px;"><i class="fa-solid fa-right-to-bracket"></i> लॉगिन करें</button>
                 <button id="signup-btn" onclick="signUpWithFirebase()" style="width:100%; padding:12px; background:#0284c7; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top: 10px;"><i class="fa-solid fa-user-plus"></i> नया अकाउंट बनाएं (Sign Up)</button>
                 
-                <div id="pass-reset-links" style="margin-top: 15px; display: flex; justify-content: space-between; gap: 10px;">
-                    <button onclick="togglePasswordSection(true)" style="background:none; border:none; color:#2563eb; font-weight:bold; cursor:pointer; font-size:13px;"><i class="fa-solid fa-key"></i> पासवर्ड बदलें</button>
+                <div id="pass-reset-links" style="margin-top: 15px; display: flex; justify-content: center; gap: 10px;">
                     <button onclick="resetPasswordViaEmail()" style="background:none; border:none; color:#ea580c; font-weight:bold; cursor:pointer; font-size:13px;"><i class="fa-solid fa-envelope-open-text"></i> पासवर्ड भूल गए?</button>
                 </div>
-            </div>
-
-            <div id="change-password-fields" style="display: none; text-align: left;">
-                <h3 style="margin-bottom: 15px; text-align: center; color: #b91c1c;"><i class="fa-solid fa-user-shield"></i> नया पासवर्ड सेट करें</h3>
-                <p style="font-size: 11px; color: #64748b; margin-bottom: 10px;">पासवर्ड बदलने के लिए आपको पहले लॉगिन होना जरूरी है।</p>
-                
-                <label style="font-size:12px; font-weight:bold; color:#475569;">नया सुरक्षित पासवर्ड:</label>
-                <input type="password" id="new-password" placeholder="कम से कम 6 अंकों का नया पासवर्ड">
-                
-                <button onclick="updateFirebasePassword()" style="width:100%; padding:12px; background:#b91c1c; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;"><i class="fa-solid fa-floppy-disk"></i> नया पासवर्ड अपडेट करें</button>
-                
-                <button onclick="togglePasswordSection(false)" style="width:100%; padding:10px; background:#64748b; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:12px;"><i class="fa-solid fa-arrow-left"></i> वापस लॉगिन पर जाएँ</button>
             </div>
             
             <div id="guest-login-container" style="margin: 20px 0 10px 0; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
@@ -341,12 +329,38 @@
             </div>
         </div>
 
+        <!-- 5-Tier Dropdown Control Architecture with Add and Remove Controls -->
         <div class="global-context-bar">
-            <div class="context-group"><label>Class:</label><select class="context-select" id="g-class" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('class')">+</button></div>
-            <div class="context-group"><label>Section:</label><select class="context-select" id="g-section" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('section')">+</button></div>
-            <div class="context-group"><label>Subject:</label><select class="context-select" id="g-subject" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('subject')">+</button></div>
-            <div class="context-group"><label>Chapter:</label><select class="context-select" id="g-chapter" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('chapter')">+</button></div>
-            <div class="context-group"><label>Concept:</label><select class="context-select" id="g-concept" onchange="onContextChange()"></select><button class="add-context-btn restricted-action" onclick="addContextItem('concept')">+</button></div>
+            <div class="context-group">
+                <label>Class:</label>
+                <select class="context-select" id="g-class" onchange="onContextChange()"></select>
+                <button class="add-context-btn restricted-action" onclick="addContextItem('class')">+</button>
+                <button class="remove-context-btn restricted-action" onclick="removeContextItem('class')">-</button>
+            </div>
+            <div class="context-group">
+                <label>Section:</label>
+                <select class="context-select" id="g-section" onchange="onContextChange()"></select>
+                <button class="add-context-btn restricted-action" onclick="addContextItem('section')">+</button>
+                <button class="remove-context-btn restricted-action" onclick="removeContextItem('section')">-</button>
+            </div>
+            <div class="context-group">
+                <label>Subject:</label>
+                <select class="context-select" id="g-subject" onchange="onContextChange()"></select>
+                <button class="add-context-btn restricted-action" onclick="addContextItem('subject')">+</button>
+                <button class="remove-context-btn restricted-action" onclick="removeContextItem('subject')">-</button>
+            </div>
+            <div class="context-group">
+                <label>Chapter:</label>
+                <select class="context-select" id="g-chapter" onchange="onContextChange()"></select>
+                <button class="add-context-btn restricted-action" onclick="addContextItem('chapter')">+</button>
+                <button class="remove-context-btn restricted-action" onclick="removeContextItem('chapter')">-</button>
+            </div>
+            <div class="context-group">
+                <label>Concept:</label>
+                <select class="context-select" id="g-concept" onchange="onContextChange()"></select>
+                <button class="add-context-btn restricted-action" onclick="addContextItem('concept')">+</button>
+                <button class="remove-context-btn restricted-action" onclick="removeContextItem('concept')">-</button>
+            </div>
         </div>
 
         <div class="tab-bar">
@@ -356,6 +370,7 @@
             <button class="tab-btn" onclick="switchTab(3)"><i class="fa-solid fa-folder-open"></i> इमेज & डाक्यूमेंट्स</button>
             <button class="tab-btn" onclick="switchTab(4)"><i class="fa-solid fa-folder-plus"></i> महत्वपूर्ण लिंक्स</button>
             <button class="tab-btn" onclick="switchTab(5)"><i class="fa-solid fa-robot"></i> एआई जनरेटर</button>
+            <button class="tab-btn" onclick="switchTab(6)"><i class="fa-solid fa-key"></i> पासवर्ड बदलें</button>
         </div>
 
         <p id="voice-monitor" style="text-align:center; background:#fff; padding:10px; font-size:14px; color:#dc2626; font-weight:600; border-bottom: 1px solid #e5e7eb;">
@@ -484,10 +499,21 @@
             </div>
         </div>
 
+        <div id="tab-6" class="tab-content">
+            <div class="card" style="max-width: 500px; margin: 0 auto;">
+                <h3><i class="fa-solid fa-user-shield" style="color:#b91c1c;"></i> नया सुरक्षित पासवर्ड सेट करें</h3>
+                <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">आप पोर्टल में लॉग इन हैं। यहाँ से आप अपना नया पासवर्ड बदल सकते हैं।</p>
+                
+                <label style="font-size:12px; font-weight:bold; color:#475569; display:block; margin-top:10px;">नया सुरक्षित पासवर्ड दर्ज करें:</label>
+                <input type="password" id="in-app-new-password" class="in-app-input" placeholder="कम से कम 6 अंकों का नया पासवर्ड">
+                
+                <button onclick="updateFirebasePassword()" style="width:100%; padding:12px; background:#b91c1c; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;"><i class="fa-solid fa-floppy-disk"></i> पासवर्ड अपडेट करें</button>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // Firebase Configuration (पहले से दी गई सेटिंग्स)
         const firebaseConfig = {
           apiKey: "AIzaSyCBW3EaQo-XiY05RpkG3eKiuhI5OcQZqu4",
           authDomain: "edusmart-fbe62.firebaseapp.com",
@@ -503,11 +529,9 @@
         const database = firebase.database();
         const auth = firebase.auth();
 
-        // एडमिन डिफ़ॉल्ट क्रेडेंशियल
         const ADMIN_USERNAME = "admin";
         const ADMIN_PASSWORD = "admin123";
 
-        // लोकल डेटा स्ट्रक्चर (मल्टी-यूज़र पृथक्करण के लिए)
         let currentUserUid = null; 
         let isAdminLoggedIn = false;
         
@@ -515,7 +539,8 @@
             classes: ["Class 6", "Class 7", "Class 8"],
             sections: ["Section A", "Section B", "Section C"],
             subjects: ["Science", "Mathematics"],
-            chapters: ["Chapter 1"], concepts: ["Concept 1"]
+            chapters: ["Chapter 1", "Chapter 2"], 
+            concepts: ["Concept 1", "Concept 2"]
         };
         let relationalStudentDb = {};
         let relationalLinksDb = {};
@@ -538,7 +563,6 @@
             "jyoti": "ज्योति", "ravi": "रवि", "karan": "करण", "arjun": "अर्जुन", "raj": "राज"
         };
 
-        // Lightbox Functions
         function openLightbox(src) {
             const modal = document.getElementById('zoom-lightbox-modal');
             const img = document.getElementById('lightbox-target-img');
@@ -549,11 +573,9 @@
         function resetZoom() { currentZoomLevel = 1; document.getElementById('lightbox-target-img').style.transform = `scale(${currentZoomLevel})`; }
         function closeLightboxOnBg(e) { if(e.target.id === "img-wrapper") closeLightbox(); }
 
-        // रोल के अनुसार लॉगिन फ़ील्ड्स को बदलना
         function toggleAdminLoginFields() {
             const role = document.getElementById('login-role').value;
             const signupBtn = document.getElementById('signup-btn');
-            const passResetLinks = document.getElementById('pass-reset-links');
             const guestContainer = document.getElementById('guest-login-container');
             const usernameInput = document.getElementById('username');
             const passwordInput = document.getElementById('password');
@@ -562,18 +584,15 @@
                 usernameInput.placeholder = "एडमिन यूज़रनेम दर्ज करें";
                 passwordInput.placeholder = "एडमिन पासवर्ड दर्ज करें";
                 signupBtn.style.display = 'none';
-                passResetLinks.style.display = 'none';
                 guestContainer.style.display = 'none';
             } else {
                 usernameInput.placeholder = "ईमेल आईडी (Email ID)";
                 passwordInput.placeholder = "सुरक्षित पासवर्ड";
                 signupBtn.style.display = 'block';
-                passResetLinks.style.display = 'flex';
                 guestContainer.style.display = 'block';
             }
         }
 
-        // व्यक्तिगत यूज़र के रूट पर डेटा सिंक करने की विधि
         function getCurrentScopeKey() {
             const cls = document.getElementById('g-class').value || "DefaultClass";
             const sec = document.getElementById('g-section').value || "DefaultSec";
@@ -606,7 +625,6 @@
             return scopeGalleryDb[key];
         }
 
-        // Firebase Sync - यूज़र विशिष्ट नोड के अंदर सेव करना
         function syncToFirebase(node) {
             if (isGuestUser || isAdminLoggedIn || !currentUserUid) return;
             
@@ -630,12 +648,8 @@
             }
         }
 
-        // Authentication State Observer
         auth.onAuthStateChanged(user => {
-            if(isAdminLoggedIn) {
-                // एडमिन लॉगिन के दौरान आथ सिंक को बायपास करें
-                return;
-            }
+            if(isAdminLoggedIn) return;
             if (user) {
                 currentUserUid = user.uid;
                 isGuestUser = false;
@@ -696,7 +710,6 @@
             });
         }
 
-        // Firebase Sign Up
         function signUpWithFirebase() {
             const email = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value.trim();
@@ -715,7 +728,6 @@
                 });
         }
 
-        // Firebase / Admin Login
         function loginWithFirebase() {
             const role = document.getElementById('login-role').value;
             const email = document.getElementById('username').value.trim();
@@ -727,7 +739,6 @@
             }
 
             if(role === 'admin') {
-                // एडमिन क्रेडेंशियल सत्यापन
                 if(email === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
                     isAdminLoggedIn = true;
                     showAdminDashboard();
@@ -735,10 +746,8 @@
                     alert("❌ गलत एडमिन यूज़रनेम या पासवर्ड!");
                 }
             } else {
-                // सामान्य यूज़र लॉगिन
                 auth.signInWithEmailAndPassword(email, pass)
                     .then((userCredential) => {
-                        // onAuthStateChanged हैंडल करेगा बाकी प्रोसेस
                     })
                     .catch((error) => {
                         alert("❌ लॉगिन असफल: " + error.message);
@@ -746,7 +755,6 @@
             }
         }
 
-        // एडमिन डैशबोर्ड दिखाना और सभी यूज़र्स का डेटा क्लाउड से फ़ेच करना
         function showAdminDashboard() {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-interface').style.display = 'none';
@@ -754,7 +762,6 @@
             loadAllUsersCloudData();
         }
 
-        // फ़ायरबेस से सभी यूज़र्स का पूरा इतिहास और डेटा लोड करना
         function loadAllUsersCloudData() {
             const tbody = document.getElementById('admin-logs-tbody');
             tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:20px; color:#166534;">🔄 क्लाउड डेटा सिंक किया जा रहा है...</td></tr>`;
@@ -771,7 +778,7 @@
                 for(let uid in allUsers) {
                     const userData = allUsers[uid];
                     const studentsDb = userData.relationalStudentDb || {};
-                    const emailRepresentation = uid; // वास्तविक ईमेल ट्रैक करने के लिए
+                    const emailRepresentation = uid;
 
                     if(Object.keys(studentsDb).length === 0) {
                         tbody.innerHTML += `
@@ -816,7 +823,6 @@
             });
         }
 
-        // एडमिन द्वारा सभी यूज़र्स का डेटा डिलीट करना
         function clearAllUsersCloudData() {
             if(confirm("⚠️ क्या आप निश्चित रूप से सभी रजिस्टर्ड यूज़र्स का पूरा डेटाबेस डिलीट करना चाहते हैं? यह क्रिया वापस नहीं ली जा सकती!")) {
                 database.ref('users').remove()
@@ -829,7 +835,6 @@
             }
         }
 
-        // Firebase / Admin Logout
         function logoutFromFirebase() {
             if(isAdminLoggedIn) {
                 isAdminLoggedIn = false;
@@ -843,7 +848,6 @@
             }
         }
 
-        // Password Reset via Email
         function resetPasswordViaEmail() {
             const email = document.getElementById('username').value.trim();
             if(!email) {
@@ -859,10 +863,9 @@
                 });
         }
 
-        // Change Password Logged in User
         function updateFirebasePassword() {
             const user = auth.currentUser;
-            const newPass = document.getElementById('new-password').value.trim();
+            const newPass = document.getElementById('in-app-new-password').value.trim();
 
             if(!user) {
                 alert("⚠️ इस सुविधा के लिए आपका लॉगिन होना अनिवार्य है।");
@@ -876,22 +879,12 @@
             user.updatePassword(newPass)
                 .then(() => {
                     alert("🎉 पासवर्ड सफलतापूर्वक बदल दिया गया है!");
-                    document.getElementById('new-password').value = "";
-                    togglePasswordSection(false);
+                    document.getElementById('in-app-new-password').value = "";
+                    switchTab(0); 
                 })
                 .catch((error) => {
-                    alert("❌ एरर: " + error.message);
+                    alert("❌ पासवर्ड अपडेट करने में समस्या आई: " + error.message);
                 });
-        }
-
-        function togglePasswordSection(showChangeForm) {
-            if(showChangeForm) {
-                document.getElementById('main-login-fields').style.display = 'none';
-                document.getElementById('change-password-fields').style.display = 'block';
-            } else {
-                document.getElementById('main-login-fields').style.display = 'block';
-                document.getElementById('change-password-fields').style.display = 'none';
-            }
         }
 
         function showLoginScreen() {
@@ -940,7 +933,6 @@
             renderStudents();
         }
 
-        // Parent View Screen Logic
         function checkParentViewRoute() {
             const urlParams = new URLSearchParams(window.location.search);
             const pName = urlParams.get('name');
@@ -1017,7 +1009,8 @@
 
         function addContextItem(type) {
             if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र कॉन्टेक्स्ट ऐड नहीं कर सकते!"); return; }
-            let newItem = prompt(`नया नाम दर्ज करें:`);
+            let labelMap = { class: "क्लास", section: "सेक्शन", subject: "सब्जेक्ट", chapter: "चैपटर", concept: "कांसेप्ट" };
+            let newItem = prompt(`नया ${labelMap[type]} नाम दर्ज करें:`);
             if (newItem && newItem.trim() !== "") {
                 newItem = newItem.trim();
                 if (type === 'class') contextDb.classes.push(newItem);
@@ -1027,6 +1020,33 @@
                 if (type === 'concept') contextDb.concepts.push(newItem);
                 renderContextDropdowns(); 
                 document.getElementById(`g-${type}`).value = newItem; 
+                onContextChange();
+                syncToFirebase('contexts');
+            }
+        }
+
+        // Dynamic Removal Mechanism for all 5 tiers
+        function removeContextItem(type) {
+            if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र कॉन्टेक्स्ट डिलीट नहीं कर सकते!"); return; }
+            let selectElement = document.getElementById(`g-${type}`);
+            let targetValue = selectElement.value;
+            
+            if (!targetValue) {
+                alert("⚠️ हटाने के लिए कोई आइटम चयनित नहीं है।");
+                return;
+            }
+
+            let arrayKeyMap = { class: "classes", section: "sections", subject: "subjects", chapter: "chapters", concept: "concepts" };
+            let currentList = contextDb[arrayKeyMap[type]];
+            
+            if (currentList.length <= 1) {
+                alert("⚠️ ड्रॉपडाउन में कम से कम एक आइटम होना आवश्यक है, इसे हटाया नहीं जा सकता!");
+                return;
+            }
+
+            if (confirm(`क्या आप निश्चित रूप से "${targetValue}" को हटाना चाहते हैं?`)) {
+                contextDb[arrayKeyMap[type]] = currentList.filter(item => item !== targetValue);
+                renderContextDropdowns();
                 onContextChange();
                 syncToFirebase('contexts');
             }
@@ -1071,7 +1091,7 @@
         function shareAllDataToWhatsApp() {
             let studentDb = getActiveStudentList();
             if (studentDb.length === 0) {
-                alert("⚠️ वर्तमान क्लास/सब्जेक्ट में कोई छात्र डेटा उपलब्ध नहीं है!");
+                alert("⚠️ वर्तमान कांसेप्ट में कोई छात्र डेटा उपलब्ध नहीं है!");
                 return;
             }
             const keyText = getCurrentScopeKey().split('___').join(' ➔ ');
@@ -1290,7 +1310,6 @@
         function useEraser() { if(isGuestUser) return; penColor = "#ffffff"; }
         function clearBoard() { if(isGuestUser) return; ctx.clearRect(0, 0, canvas.width, canvas.height); savedCanvasImage = null; syncToFirebase('assets'); }
 
-        // छात्र जोड़ने का फंक्शन
         function addStudent() { 
             if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र छात्र नहीं जोड़ सकते!"); return; }
             const input = document.getElementById('manual-name'); 
@@ -1323,7 +1342,7 @@
             let studentDb = getActiveStudentList();
             const container = document.getElementById('students-container'); if(!container) return;
             container.innerHTML = "";
-            if (studentDb.length === 0) { container.innerHTML = `<p style="color:#64748b; text-align:center; padding:20px;">कोई छात्र नहीं है।</p>`; return; }
+            if (studentDb.length === 0) { container.innerHTML = `<p style="color:#64748b; text-align:center; padding:20px;">इस कांसेप्ट में कोई छात्र नहीं है।</p>`; return; }
 
             const searchKeyword = document.getElementById('student-search-input') ? document.getElementById('student-search-input').value.trim().toLowerCase() : "";
             
@@ -1379,9 +1398,25 @@
         function addLinkItem() { 
             if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र लिंक्स नहीं जोड़ सकते!"); return; }
             const title = document.getElementById('link-title'); const url = document.getElementById('link-url'); 
-            if(title.value.trim() && url.value.trim()) { getActiveLinksList().unshift({ title: title.value.trim(), url: url.value.trim() }); title.value = ""; url.value = ""; syncToFirebase('links'); } 
+            if(title.value.trim() && url.value.trim()) { 
+                getActiveLinksList().unshift({ title: title.value.trim(), url: url.value.trim() }); 
+                title.value = ""; url.value = ""; 
+                syncToFirebase('links'); 
+                renderLinks();
+            } 
         }
-        function renderLinks() { const view = document.getElementById('links-list-view'); if(!view) return; view.innerHTML = ""; getActiveLinksList().forEach((l, idx) => { const item = document.createElement('div'); item.innerHTML = `<strong>${l.title}</strong>: <a href="${l.url}" target="_blank">${l.url}</a>`; view.appendChild(item); }); }
+        
+        function renderLinks() { 
+            const view = document.getElementById('links-list-view'); if(!view) return; 
+            view.innerHTML = ""; 
+            getActiveLinksList().forEach((l, idx) => { 
+                const item = document.createElement('div'); 
+                item.style.padding = "6px";
+                item.style.borderBottom = "1px solid #e2e8f0";
+                item.innerHTML = `🔗 <strong>${l.title}</strong>: <a href="${l.url}" target="_blank">${l.url}</a>`; 
+                view.appendChild(item); 
+            }); 
+        }
 
         function uploadToGallery(event) { 
             if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र डाक्यूमेंट्स अपलोड नहीं कर सकते!"); event.target.value = ""; return; }
@@ -1404,15 +1439,19 @@
                     type: fileType 
                 }); 
                 syncToFirebase('gallery'); 
+                renderGallery();
             }; 
             reader.readAsDataURL(file); 
         }
         
         function deleteGalleryItem(idx) {
             if (isGuestUser) { alert("⚠️ एक्सेस डिनाइड: गेस्ट यूज़र दस्तावेज़ हटा नहीं सकते!"); return; }
-            let list = getActiveGalleryList();
-            list.splice(idx, 1);
-            syncToFirebase('gallery');
+            if(confirm("क्या आप इस फ़ाइल को डिलीट करना चाहते हैं?")) {
+                let list = getActiveGalleryList();
+                list.splice(idx, 1);
+                syncToFirebase('gallery');
+                renderGallery();
+            }
         }
 
         function renderGallery() { 
@@ -1481,7 +1520,6 @@
         window.onload = function() { 
             toggleAdminLoginFields();
             if(!checkParentViewRoute()) {
-                // डिफ़ॉल्ट रूप से पेज ऑथेंटिकेशन स्टेट चेक करेगा
             }
         };
     </script>
